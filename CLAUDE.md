@@ -118,12 +118,14 @@ uv run --env-file .env python run_test.py --tasks 1
 ## 執行 OpenEvolve（推薦使用 Makefile）
 
 ```bash
-make evolve                              # 預設 10 iterations、5 tasks
+make evolve                              # 預設 10 iterations、5 tasks；輸出在 config/openevolve_output/<YYYYMMDD_HHMMSS>/
 make evolve ITERS=20 TASKS=3             # 自訂參數
-make evolve-resume CHECKPOINT=config/openevolve_output/checkpoints/checkpoint_10
+make evolve-resume CHECKPOINT=config/openevolve_output/20250612_143022/checkpoints/checkpoint_10
 make evolve-test                         # 本地 evaluator 整合測試
-make visualize                           # 啟動視覺化伺服器
+make visualize OUTPUT=config/openevolve_output/20250612_143022   # 視覺化須指向「單次 run」資料夾
 ```
+
+`make evolve` 預設會把 `best/`、`checkpoints/` 寫進**當日時間**子資料夾，避免覆寫歷次結果；若要固定路徑可：`make evolve OUTPUT=config/openevolve_output`。
 
 或使用完整指令：
 
@@ -131,7 +133,7 @@ make visualize                           # 啟動視覺化伺服器
 OPENEVOLVE_NUM_TASKS=5 uv run --env-file .env python -m openevolve.cli \
   config/agents_evolving.yaml openevolve_evaluator.py \
   --config config/openevolve_config.yaml \
-  --output config/openevolve_output \
+  --output config/openevolve_output/20250612_143022 \
   --iterations 10
 ```
 

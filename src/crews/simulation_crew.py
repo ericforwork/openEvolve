@@ -26,8 +26,8 @@ class SimulationCrew():
         return Agent(
             config=self.agents_config['item_analyst'],
             verbose=False,
-            tools=[get_interaction_tool()] # 綁定我們的注入式 Tool wrapper
-            max_rpm = 10
+            tools=[get_interaction_tool()],  # 綁定我們的注入式 Tool wrapper
+            max_rpm=10,
         )
 
     @agent

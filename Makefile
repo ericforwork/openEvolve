@@ -8,7 +8,10 @@
 # OpenEvolve 進化參數（可由 CLI 覆寫，例如：make evolve ITERS=20 TASKS=3）
 ITERS ?= 10
 TASKS ?= 5
-OUTPUT ?= config/openevolve_output
+# 所有進化 run 的根目錄；每次 make evolve 預設會在下面再建 YYYYMMDD_HHMMSS 子資料夾
+OUTPUT_BASE ?= config/openevolve_output
+# 精確輸出路徑（留空＝evolve 自動時間戳子資料夾；visualize / 手動覆寫時可指定）
+OUTPUT ?=
 
 # 傳給 evaluator / OpenEvolve（Windows cmd 不支援「VAR=value cmd」前綴，用 export 跨平台）
 export OPENEVOLVE_NUM_TASKS := $(TASKS)
@@ -40,30 +43,52 @@ smoke:  ## Smoke test（只跑 1 個 task）
 # ============================================================================
 # OpenEvolve 進化
 # ============================================================================
+# evolve：預設輸出至 $(OUTPUT_BASE)/YYYYMMDD_HHMMSS/（其下含 best、checkpoints）
+ifeq ($(strip $(OUTPUT)),)
 .PHONY: evolve
-evolve:  ## 啟動 OpenEvolve 進化（可調 ITERS=N TASKS=N）
+evolve:  ## 啟動 OpenEvolve 進化（可調 ITERS=N TASKS=N；輸出至 OUTPUT_BASE/時間戳）
+	@TS=$$(uv run python -c "import time; print(time.strftime('%Y%m%d_%H%M%S'))"); \
+	OUT="$(OUTPUT_BASE)/$$TS"; \
+	echo "[evolve] OpenEvolve 輸出目錄: $$OUT"; \
+	uv run --env-file .env python -m openevolve.cli \
+	    config/agents_evolving.yaml \
+	    openevolve_evaluator.py \
+	    --config config/openevolve_config.yaml \
+	    --output $$OUT \
+	    --iterations $(ITERS)
+else
+.PHONY: evolve
+evolve:  ## 啟動 OpenEvolve 進化（可調 ITERS=N TASKS=N；已指定 OUTPUT=固定路徑）
 	uv run --env-file .env python -m openevolve.cli \
 	    config/agents_evolving.yaml \
 	    openevolve_evaluator.py \
 	    --config config/openevolve_config.yaml \
 	    --output $(OUTPUT) \
 	    --iterations $(ITERS)
+endif
 
 # evolve-resume：CHECKPOINT 須在命令列指定（Windows 無 bash 的 [ -z ... ]）
 ifeq ($(strip $(CHECKPOINT)),)
 .PHONY: evolve-resume
 evolve-resume:  ## 從 checkpoint 繼續（須指定 CHECKPOINT=path）
 	@echo ERROR: 必須指定 CHECKPOINT，例如：
-	@echo   make evolve-resume CHECKPOINT=config/openevolve_output/checkpoints/checkpoint_10
+	@echo   make evolve-resume CHECKPOINT=config/openevolve_output/20250612_143022/checkpoints/checkpoint_10
+	@echo （可選）若 checkpoint 不在預設 run 根下，請加 OUTPUT=該次 run 根目錄
 	@exit 1
 else
+# 未指定 OUTPUT 時，由 .../run_id/checkpoints/checkpoint_N 推回 run 根目錄
+ifneq ($(strip $(OUTPUT)),)
+RESUME_OUTPUT := $(OUTPUT)
+else
+RESUME_OUTPUT := $(patsubst %/,%,$(dir $(dir $(CHECKPOINT))))
+endif
 .PHONY: evolve-resume
-evolve-resume:  ## 從 checkpoint 繼續（指定 CHECKPOINT=path）
+evolve-resume:  ## 從 checkpoint 繼續（CHECKPOINT=...；OUTPUT 可省略，會自動推導）
 	uv run --env-file .env python -m openevolve.cli \
 	    config/agents_evolving.yaml \
 	    openevolve_evaluator.py \
 	    --config config/openevolve_config.yaml \
-	    --output $(OUTPUT) \
+	    --output $(RESUME_OUTPUT) \
 	    --checkpoint $(CHECKPOINT) \
 	    --iterations $(ITERS)
 endif
@@ -73,8 +98,8 @@ evolve-test:  ## 本地整合測試 evaluator（不啟動進化）
 	uv run --env-file .env python openevolve_evaluator.py
 
 .PHONY: visualize
-visualize:  ## 啟動 OpenEvolve 視覺化（需先 clone：third_party/openevolve，見 scripts/run_openevolve_visualizer.py）
-	uv run python scripts/run_openevolve_visualizer.py --path $(OUTPUT)
+visualize:  ## 啟動視覺化（--path 須指向單次 run，例如 OUTPUT=config/openevolve_output/20250612_143022）
+	uv run python scripts/run_openevolve_visualizer.py --path $(if $(strip $(OUTPUT)),$(OUTPUT),$(OUTPUT_BASE))
 
 .PHONY: visualizer
 visualizer: visualize  ## 同 visualize（常見拼錯別名）
@@ -95,10 +120,10 @@ clean:  ## 清理 __pycache__ 與 .pyc
 	find . -type f -name "*.pyc" ! -path "./.venv/*" -delete 2>/dev/null || true
 
 .PHONY: clean-output
-clean-output:  ## 清除 OpenEvolve 輸出（⚠️ 會刪除 checkpoints！）
-	@echo "⚠️  這會刪除 $(OUTPUT) 下所有 checkpoints。確定？(Ctrl+C 取消，Enter 繼續)"
+clean-output:  ## 清除所有 OpenEvolve 輸出（⚠️ 刪除 OUTPUT_BASE 下含各次時間戳資料夾）
+	@echo "⚠️  這會刪除整個 $(OUTPUT_BASE)（含歷次進化結果）。確定？(Ctrl+C 取消，Enter 繼續)"
 	@read CONFIRM
-	rm -rf $(OUTPUT)
+	rm -rf $(OUTPUT_BASE)
 
 # ============================================================================
 # Help

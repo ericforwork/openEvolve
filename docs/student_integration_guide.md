@@ -198,20 +198,21 @@ prediction_modeler:
 ### Step 5：啟動進化
 
 ```bash
-# 預設 10 iter × 5 tasks
+# 預設 10 iter × 5 tasks；輸出會在 config/openevolve_output/<YYYYMMDD_HHMMSS>/（終端機會印出完整路徑）
 make evolve
 
 # 自訂參數
 make evolve ITERS=50 TASKS=3
 
-# 從 checkpoint 繼續（如果之前的跑被中斷）
-make evolve-resume CHECKPOINT=config/openevolve_output/checkpoints/checkpoint_10
+# 從 checkpoint 繼續（如果之前的跑被中斷；路徑請換成你該次 run 的時間戳資料夾）
+make evolve-resume CHECKPOINT=config/openevolve_output/20250612_143022/checkpoints/checkpoint_10
+# 未指定 OUTPUT 時，Makefile 會從 CHECKPOINT 路徑自動推回 run 根目錄
 ```
 
-進化過程中可以另開終端機看視覺化：
+進化過程中可以另開終端機看視覺化（`--path` 必須指向**該次 run** 根目錄，內含 `best/`）：
 
 ```bash
-make visualize
+make visualize OUTPUT=config/openevolve_output/20250612_143022
 # 打開瀏覽器 http://127.0.0.1:8080
 ```
 
@@ -221,21 +222,24 @@ make visualize
 > git clone --depth 1 https://github.com/algorithmicsuperintelligence/openevolve.git third_party/openevolve
 > ```
 >
-> 若沒有上述目錄，執行 `make visualize` 會印出錯誤提示。無 `make` 時可改：`uv run python scripts/run_openevolve_visualizer.py --path config/openevolve_output`
+> 若沒有上述目錄，執行 `make visualize` 會印出錯誤提示。無 `make` 時可改：`uv run python scripts/run_openevolve_visualizer.py --path config/openevolve_output/<該次時間戳>`（請替換成 `make evolve` 開始時終端機印出的輸出目錄）
 
 ---
 
 ## 4. 進化完成後拿走最佳結果
 
 ```bash
+# 下列路徑請換成該次進化的 run 目錄（與 make evolve 印出的 [evolve] OpenEvolve 輸出目錄 相同）
+RUN=config/openevolve_output/20250612_143022
+
 # 1. 找出最終最佳分數
-cat config/openevolve_output/best/best_program_info.json
+cat $RUN/best/best_program_info.json
 
 # 2. 取出最佳的 agents YAML
-cat config/openevolve_output/best/best_program.yaml
+cat $RUN/best/best_program.yaml
 
 # 3. 套回正式推論用的 agents.yaml
-cp config/openevolve_output/best/best_program.yaml config/agents.yaml
+cp $RUN/best/best_program.yaml config/agents.yaml
 
 # 4. 用最佳版本跑一次完整測試
 make test
@@ -313,6 +317,6 @@ make test
 3. **`make smoke`** 確認沒壞
 4. **`cp agents.yaml agents_evolving.yaml`**，編輯後者，把純推理 Agent 包進**一個** `EVOLVE-BLOCK`
 5. **`make evolve ITERS=50 TASKS=3`** 啟動演化
-6. 結束後 **`cp config/openevolve_output/best/best_program.yaml config/agents.yaml`** 套用最佳版本
+6. 結束後 **`cp config/openevolve_output/<時間戳>/best/best_program.yaml config/agents.yaml`** 套用最佳版本（`<時間戳>` 以終端機印出的輸出目錄為準）
 
 🎉 享受 LLM 自動幫你優化 prompt 的成果。
