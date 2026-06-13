@@ -1,6 +1,6 @@
 #參考task_collaborative.yaml
 # === Collaborative-style Sequential Task Definitions ===
-
+# EVOLVE-BLOCK-START
 internet_research_task:
   description: >
     Provide general insights about restaurant reviews and rating behavior using internet search if available.
@@ -253,3 +253,4 @@ coordinate_workflow_task:
 
   agent: project_manager
 
+# EVOLVE-BLOCK-END

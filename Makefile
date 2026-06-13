@@ -50,7 +50,7 @@ evolve:  ## 啟動 OpenEvolve 進化（可調 ITERS=N TASKS=N；輸出至 OUTPUT
 	@$(eval EVOLVE_OUT := $(OUTPUT_BASE)/$(shell uv run python scripts/evolve_timestamp.py))
 	@echo [evolve] OpenEvolve 輸出目錄: $(EVOLVE_OUT)
 	uv run --env-file .env python -m openevolve.cli \
-	    config/agents_evolving.yaml \
+	    config/tasks_simulator.yaml \
 	    openevolve_evaluator.py \
 	    --config config/openevolve_config.yaml \
 	    --output $(EVOLVE_OUT) \
@@ -59,7 +59,7 @@ else
 .PHONY: evolve
 evolve:  ## 啟動 OpenEvolve 進化（可調 ITERS=N TASKS=N；已指定 OUTPUT=固定路徑）
 	uv run --env-file .env python -m openevolve.cli \
-	    config/agents_evolving.yaml \
+	    config/tasks_simulator.yaml \
 	    openevolve_evaluator.py \
 	    --config config/openevolve_config.yaml \
 	    --output $(OUTPUT) \
@@ -84,7 +84,7 @@ endif
 .PHONY: evolve-resume
 evolve-resume:  ## 從 checkpoint 繼續（CHECKPOINT=...；OUTPUT 可省略，會自動推導）
 	uv run --env-file .env python -m openevolve.cli \
-	    config/agents_evolving.yaml \
+	    config/tasks_simulator.yaml \
 	    openevolve_evaluator.py \
 	    --config config/openevolve_config.yaml \
 	    --output $(RESUME_OUTPUT) \

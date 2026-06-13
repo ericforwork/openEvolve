@@ -1,8 +1,9 @@
 """
 SimulationCrew — 對齊 config/tasks_simulator.yaml 的完整任務鏈與
-config/agents.yaml（或執行期覆寫的 agents_evolving.yaml）內全部 agent。
+config/agents.yaml（或 OPENEVOLVE_AGENTS_YAML / serving_flow 覆寫）內全部 agent。
 
-不修改上述 YAML；任務順序與 task 名稱與 tasks_simulator.yaml 一致。
+OpenEvolve 演化 tasks 時會設定 OPENEVOLVE_TASKS_YAML；缺漏的 task 會與底稿
+config/tasks_simulator.yaml 合併。任務順序與 task 名稱與 tasks_simulator.yaml 一致。
 """
 from __future__ import annotations
 
@@ -39,7 +40,7 @@ _TASK_ORDER: List[str] = [
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _DEFAULT_AGENTS_PATH = _PROJECT_ROOT / "config" / "agents.yaml"
-_TASKS_PATH = _PROJECT_ROOT / "config" / "tasks_simulator.yaml"
+_DEFAULT_TASKS_PATH = _PROJECT_ROOT / "config" / "tasks_simulator.yaml"
 
 # 與 _build_agents / tasks_simulator.yaml 一致，缺一不可
 _REQUIRED_AGENT_KEYS: frozenset[str] = frozenset(
@@ -149,18 +150,95 @@ def _resolve_agents_config(raw: Any) -> Dict[str, Any]:
     return _merge_agents_with_defaults({})
 
 
-def _load_tasks_config() -> Dict[str, Any]:
-    text = _TASKS_PATH.read_text(encoding="utf-8")
+def _validate_tasks_mapping(cfg: Dict[str, Any], *, source: str) -> None:
+    """確保底稿或合併後 tasks 含齊 _TASK_ORDER，且每個 task 為 dict、含 agent。"""
+    missing = [k for k in _TASK_ORDER if k not in cfg]
+    if missing:
+        raise ValueError(
+            f"tasks 設定不完整（來源：{source}）。缺少下列 task key：{missing}。\n"
+            f"請檢查 `config/tasks_simulator.yaml`（或 OpenEvolve 覆寫檔），勿刪除或改名這些 task。"
+        )
+    bad: List[str] = []
+    for k in _TASK_ORDER:
+        v = cfg.get(k)
+        if not isinstance(v, dict):
+            bad.append(f"{k!r} -> {type(v).__name__}")
+            continue
+        if "agent" not in v:
+            bad.append(f"{k!r} 缺少 'agent' 欄位")
+    if bad:
+        raise ValueError(
+            f"tasks 設定錯誤（來源：{source}）：" + "; ".join(bad)
+        )
+
+
+def _parse_tasks_yaml_text(
+    text: str,
+    *,
+    path_for_error: str,
+    validate_required_keys: bool,
+) -> Dict[str, Any]:
+    sanitized = sanitize_agents_yaml_text(text)
     try:
-        data = yaml.safe_load(text)
+        data = yaml.safe_load(sanitized)
     except yaml.YAMLError as e:
         raise ValueError(
-            f"YAML 解析失敗（檔案：{_TASKS_PATH}）。請檢查 tasks_simulator.yaml 縮排與結構。\n"
-            f"原始錯誤：{e}"
+            f"YAML 解析失敗（檔案：{path_for_error}）。常見原因：縮排錯誤、少冒號、"
+            f"兩份 root 黏在一起。\n原始錯誤：{e}"
         ) from e
+    if data is None:
+        raise ValueError(
+            f"YAML 無有效內容（檔案：{path_for_error}）：解析結果為 null。"
+        )
     if not isinstance(data, dict):
-        raise TypeError(f"{_TASKS_PATH} 根節點必須為 mapping")
+        raise TypeError(
+            f"tasks YAML 根節點必須為 mapping（檔案：{path_for_error}），實際為 {type(data).__name__}。"
+        )
+    if validate_required_keys:
+        _validate_tasks_mapping(data, source=path_for_error)
     return data
+
+
+def _load_default_tasks_base() -> Dict[str, Any]:
+    text = _DEFAULT_TASKS_PATH.read_text(encoding="utf-8")
+    return _parse_tasks_yaml_text(
+        text,
+        path_for_error=str(_DEFAULT_TASKS_PATH),
+        validate_required_keys=True,
+    )
+
+
+def _merge_tasks_with_defaults(cfg: Any) -> Dict[str, Any]:
+    """OpenEvolve 可能只輸出部分 task；缺鍵時從 config/tasks_simulator.yaml 補齊。"""
+    base = _load_default_tasks_base()
+    if not isinstance(cfg, dict):
+        return base
+    merged = dict(base)
+    for k, v in cfg.items():
+        if isinstance(v, dict) and k in merged:
+            merged[k] = v
+    _validate_tasks_mapping(
+        merged,
+        source=f"合併結果（底稿 {_DEFAULT_TASKS_PATH} + OpenEvolve 覆寫）",
+    )
+    return merged
+
+
+def _resolve_tasks_config() -> Dict[str, Any]:
+    """一般執行用底稿；evaluate() 會設 OPENEVOLVE_TASKS_YAML 指向突變檔。"""
+    path = os.environ.get("OPENEVOLVE_TASKS_YAML")
+    if not path:
+        return _merge_tasks_with_defaults({})
+    p = Path(path)
+    if not p.is_absolute():
+        p = (_PROJECT_ROOT / path).resolve()
+    text = p.read_text(encoding="utf-8")
+    loaded = _parse_tasks_yaml_text(
+        text,
+        path_for_error=str(p),
+        validate_required_keys=False,
+    )
+    return _merge_tasks_with_defaults(loaded)
 
 
 def parse_agents_yaml_file_for_flow(path: str) -> Dict[str, Any]:
@@ -235,7 +313,7 @@ class SimulationCrew:
         agents_cfg = _resolve_agents_config(
             getattr(self, "agents_config", None) or SimulationCrew.agents_config
         )
-        tasks_cfg = _load_tasks_config()
+        tasks_cfg = _resolve_tasks_config()
 
         by_name = self._build_agents(agents_cfg)
         agents_list = [
@@ -251,7 +329,7 @@ class SimulationCrew:
         tasks_list: List[Task] = []
         for key in _TASK_ORDER:
             if key not in tasks_cfg:
-                raise KeyError(f"tasks_simulator.yaml 缺少 task 定義: {key}")
+                raise KeyError(f"tasks 設定缺少 task 定義: {key}")
             block = tasks_cfg[key]
             if not isinstance(block, dict):
                 raise TypeError(f"task {key} 必須為 mapping")

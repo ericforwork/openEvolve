@@ -1,8 +1,8 @@
-# OpenEvolve configuration for AgentSociety CrewAI agent prompt evolution
-# Initial program : config/agents_evolving.yaml
+# OpenEvolve configuration — evolve CrewAI *task* prompts (tasks_simulator.yaml)
+# Initial program : config/tasks_simulator.yaml
 # Evaluator       : openevolve_evaluator.py
 # Run command     :
-#   uv run openevolve config/agents_evolving.yaml openevolve_evaluator.py \
+#   uv run openevolve config/tasks_simulator.yaml openevolve_evaluator.py \
 #     --config config/openevolve_config.yaml \
 #     --output config/openevolve_output
 
@@ -17,7 +17,7 @@ random_seed: 42
 # (diff-based mode generates SEARCH/REPLACE patches that easily corrupt YAML structure)
 diff_based_evolution: false
 language: "text"
-max_code_length: 10000
+max_code_length: 18000   # tasks_simulator.yaml + EVOLVE-BLOCK exceeds 10k chars
 
 # --- LLM ----------------------------------------------------------------------
 llm:
@@ -35,29 +35,28 @@ llm:
 # --- Prompt -------------------------------------------------------------------
 prompt:
   system_message: |
-    You are an expert prompt engineer specializing in multi-agent AI systems.
-    You are evolving the configuration (role, goal, backstory) of three CrewAI agents
-    that simulate user behavior on a review platform:
+    You are an expert prompt engineer for multi-agent CrewAI pipelines on a review platform.
 
-    1. data_retriever        - retrieves user profile, item details, user's historical reviews,
-                                and item's historical reviews via a fixed ReAct tool-calling protocol.
-                                Its task description (NOT shown here) hard-codes the exact 4 tool
-                                calls it must make.
-    2. psychological_analyst - analyses user preference and rating habits from retrieved data
-    3. behavior_simulator    - embodies the user persona and produces a star rating + review text
+    You are evolving the **task definitions** inside `config/tasks_simulator.yaml` (the section
+    between `# EVOLVE-BLOCK-START` and `# EVOLVE-BLOCK-END`). Each task is a YAML mapping with
+    fields such as `description`, `expected_output`, and `agent` (the CrewAI agent name).
 
-    Your goal is to rewrite the EVOLVE-BLOCK section so that the agents produce
-    star ratings closer to the user's actual historical average and reviews that
-    match the user's typical tone and sentiment.
+    Goal: improve `combined_score` from the simulator — ratings closer to ground truth and
+    reviews that match user tone — by tightening instructions inside task `description` /
+    `expected_output` without breaking the toolchain.
 
-    Rules:
-    - Keep the YAML structure valid. Do NOT change the `llm:` field of any agent.
-    - For data_retriever, you MAY evolve role/goal/backstory, but the backstory MUST
-      explicitly remind the agent to follow the tool-calling format from its task
-      description verbatim. Do NOT instruct it to skip queries or invent new ones.
-    - For psychological_analyst and behavior_simulator, freely evolve all three fields
-      to improve rating accuracy and review fidelity.
-    - Return the complete YAML file with EVOLVE-BLOCK-START and EVOLVE-BLOCK-END markers.
+    Hard rules:
+    - Output **valid YAML only** for the full file (keep the two EVOLVE-BLOCK comment lines).
+    - Do **not** rename or delete any of these top-level task keys (order is fixed in code):
+      internet_research_task, analyze_user_task, analyze_item_task, analyze_reviews_task,
+      collaborative_reasoning_task, predict_review_task, review_prediction_task,
+      final_prediction_task, coordinate_workflow_task.
+    - Do **not** change the `agent:` field of any task (must stay aligned with `config/agents.yaml`).
+    - For tasks that use ReAct tools (`lookup_*`, `search_internet`), keep the **exact**
+      Action / Action Input patterns and tool names required in the current descriptions;
+      you may clarify wording but must not remove mandatory steps or invent alternate tools.
+    - Preserve final JSON-output tasks so the pipeline still ends with a JSON object containing
+      "stars" and "review" as required by the simulator contract.
   num_top_programs: 3
   num_diverse_programs: 2
   include_artifacts: false

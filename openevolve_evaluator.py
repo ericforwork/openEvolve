@@ -53,11 +53,15 @@ def evaluate(program_path: str) -> dict:
     """
     simulator = _get_simulator()
     try:
-        # 1. Tell CrewAISimulationAgent to load this YAML config for the run
-        os.environ["OPENEVOLVE_AGENTS_YAML"] = program_path
+        # 1. 演化程式為 tasks YAML：以底稿 tasks_simulator 合併突變；agents 用 repo 預設
+        os.environ.pop("OPENEVOLVE_AGENTS_YAML", None)
+        os.environ["OPENEVOLVE_TASKS_YAML"] = program_path
 
         num_tasks = int(os.environ.get("OPENEVOLVE_NUM_TASKS", 5))
-        print(f"\n[Evaluator] Running simulation: {program_path}  (tasks={num_tasks}, timeout={SIM_TIMEOUT_SEC}s)")
+        print(
+            f"\n[Evaluator] Running simulation: tasks={program_path}  "
+            f"(agents=default config/agents.yaml, sim_tasks={num_tasks}, timeout={SIM_TIMEOUT_SEC}s)"
+        )
 
         # Hard timeout 包住整個 simulation。如果 simulator/CrewAI/LiteLLM 內部卡住
         # （例如 rate limit retry 死循環），這層會在 SIM_TIMEOUT_SEC 後強制中止，
@@ -105,7 +109,7 @@ if __name__ == "__main__":
     # Lightweight integration test — write initial YAML to a temp file,
     # then call evaluate() exactly as OpenEvolve would.
     import tempfile
-    yaml_path = os.path.join(project_dir, "config", "agents_evolving.yaml")
+    yaml_path = os.path.join(project_dir, "config", "tasks_simulator.yaml")
     if os.path.exists(yaml_path):
         with open(yaml_path, "r", encoding="utf-8") as f:
             content = f.read()
