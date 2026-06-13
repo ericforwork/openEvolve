@@ -2,14 +2,14 @@
 run_test.py — AgentSociety + CrewAI 整合測試腳本
 
 支援三種模式：
-  1. 真實 LLM 模式 (預設)：透過 NVIDIA NIM API 進行推論
+  1. 真實 LLM 模式 (預設)：依 .env 的 OPENAI_API_BASE / OPENAI_MODEL_NAME 呼叫相容 API（如 OpenAI）
   2. Mock 模式：攔截 OpenAI API 呼叫，使用假回覆進行快速結構驗證
   3. Smoke test：只跑 1 個 task，快速驗證端到端管線
 
 用法：
   uv run python run_test.py                       # 真實 LLM，全部任務
   uv run python run_test.py --mock                # Mock 模式
-  uv run python run_test.py --tasks 1             # Smoke test（取代 run_nvidia_test.py）
+  uv run python run_test.py --tasks 1             # Smoke test
   uv run python run_test.py --tasks 3 --threads 2 # 自訂任務數與執行緒
 """
 import argparse
@@ -63,9 +63,11 @@ def report_real_llm_env() -> None:
     load_dotenv()
     api_key = os.environ.get("OPENAI_API_KEY", "")
     api_base = os.environ.get("OPENAI_API_BASE", "")
-    print("⚙️  模式: 真實 LLM (NVIDIA NIM)")
+    model = os.environ.get("OPENAI_MODEL_NAME", "")
+    print("⚙️  模式: 真實 LLM（依 .env 的相容 OpenAI API）")
     print(f"🔑 API Key: {'✅ 已設定' if api_key else '❌ 未設定'}")
     print(f"🌐 Base URL: {api_base or '❌ 未設定'}")
+    print(f"🤖 Model: {model or '（未設定 OPENAI_MODEL_NAME，使用 CrewAI 預設）'}")
 
 
 def main() -> int:

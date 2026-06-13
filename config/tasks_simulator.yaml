@@ -226,7 +226,6 @@ final_prediction_task:
 
   agent: prediction_modeler
 
-
 coordinate_workflow_task:
   description: >
     You are the project manager for user {user_id} and business {item_id}.
@@ -253,3 +252,4 @@ coordinate_workflow_task:
     - Confirmation that the pipeline reached a valid final JSON prediction (stars + review) without you generating that JSON yourself
 
   agent: project_manager
+

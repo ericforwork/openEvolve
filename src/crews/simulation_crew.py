@@ -1,65 +1,271 @@
+"""
+SimulationCrew — 對齊 config/tasks_simulator.yaml 的完整任務鏈與
+config/agents.yaml（或執行期覆寫的 agents_evolving.yaml）內全部 agent。
+
+不修改上述 YAML；任務順序與 task 名稱與 tasks_simulator.yaml 一致。
+"""
+from __future__ import annotations
+
 import os
+from pathlib import Path
+from typing import Any, Dict, List
+
+import yaml
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
 
-# 根據目錄結構加載自訂的工具層
-from src.tools.interaction_tool_wrapper import get_interaction_tool
+from src.utils.yaml_sanitize import sanitize_agents_yaml_text
+from src.tools.simulator_bound_tools import (
+    delegate_work_to_coworker,
+    get_search_internet_tool,
+    lookup_item_by_id,
+    lookup_reviews_by_item,
+    lookup_reviews_by_user,
+    lookup_reviews_by_user_and_item,
+    lookup_user_by_id,
+)
 
-@CrewBase
-class SimulationCrew():
-    """Simulation Crew for generating user review simulation"""
-    
-    # 指向剛才撰寫好的 YAML 配置檔
-    agents_config = '../../config/agents.yaml'
-    tasks_config = '../../config/tasks_simulator.yaml'
+# 與 config/tasks_simulator.yaml 中定義順序一致（依檔案由上而下）
+_TASK_ORDER: List[str] = [
+    "internet_research_task",
+    "analyze_user_task",
+    "analyze_item_task",
+    "analyze_reviews_task",
+    "collaborative_reasoning_task",
+    "predict_review_task",
+    "review_prediction_task",
+    "final_prediction_task",
+    "coordinate_workflow_task",
+]
 
-    @agent
-    def user_analyst(self) -> Agent:
-        return Agent(
-            config=self.agents_config['user_analyst'],
-            verbose=False,
-            tools=[get_interaction_tool()] # 綁定我們的注入式 Tool wrapper
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_DEFAULT_AGENTS_PATH = _PROJECT_ROOT / "config" / "agents.yaml"
+_TASKS_PATH = _PROJECT_ROOT / "config" / "tasks_simulator.yaml"
+
+# 與 _build_agents / tasks_simulator.yaml 一致，缺一不可
+_REQUIRED_AGENT_KEYS: frozenset[str] = frozenset(
+    {
+        "internet_researcher",
+        "user_analyst",
+        "item_analyst",
+        "review_analyst",
+        "prediction_modeler",
+        "reviewer",
+        "project_manager",
+    }
+)
+
+
+def _validate_agents_mapping(cfg: Dict[str, Any], *, source: str) -> None:
+    """確保底稿或合併後 mapping 含齊必填 agent，且每個為 dict（避免 KeyError）。"""
+    missing = sorted(_REQUIRED_AGENT_KEYS - cfg.keys())
+    if missing:
+        raise ValueError(
+            f"agents 設定不完整（來源：{source}）。缺少下列 top-level key：{missing}。\n"
+            f"請檢查並還原 `config/agents.yaml`（或 OpenEvolve 覆寫檔）中的對應區塊。"
+        )
+    bad: List[str] = []
+    for k in _REQUIRED_AGENT_KEYS:
+        v = cfg.get(k)
+        if not isinstance(v, dict):
+            bad.append(f"{k!r} -> {type(v).__name__}")
+    if bad:
+        raise ValueError(
+            f"agents 設定型別錯誤（來源：{source}）。下列 key 必須為 mapping（role/goal/backstory 等）："
+            + "; ".join(bad)
         )
 
-    @agent
-    def item_analyst(self) -> Agent:
-        return Agent(
-            config=self.agents_config['item_analyst'],
-            verbose=False,
-            tools=[get_interaction_tool()],  # 綁定我們的注入式 Tool wrapper
-            max_rpm=10,
-        )
 
-    @agent
-    def prediction_modeler(self) -> Agent:
-        return Agent(
-            config=self.agents_config['prediction_modeler'],
-            verbose=False
+def _parse_agents_yaml_text(
+    text: str,
+    *,
+    path_for_error: str,
+    validate_required_keys: bool,
+) -> Dict[str, Any]:
+    """
+    sanitize + yaml.safe_load；失敗時附檔名與簡短除錯提示。
+    validate_required_keys=True 時檢查 _REQUIRED_AGENT_KEYS。
+    """
+    sanitized = sanitize_agents_yaml_text(text)
+    try:
+        data = yaml.safe_load(sanitized)
+    except yaml.YAMLError as e:
+        raise ValueError(
+            f"YAML 解析失敗（檔案：{path_for_error}）。常見原因：縮排錯誤、少冒號、"
+            f"兩份 root 黏在一起、或字串未結束。\n"
+            f"原始錯誤：{e}"
+        ) from e
+    if data is None:
+        raise ValueError(
+            f"YAML 無有效內容（檔案：{path_for_error}）：解析結果為 null（檔案空白或僅註解）。"
         )
-
-    @task
-    def analyze_user_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['analyze_user_task']
+    if not isinstance(data, dict):
+        raise TypeError(
+            f"agents YAML 根節點必須為 mapping（檔案：{path_for_error}），實際為 {type(data).__name__}。"
         )
+    if validate_required_keys:
+        _validate_agents_mapping(data, source=path_for_error)
+    return data
 
-    @task
-    def analyze_item_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['analyze_item_task']
+
+def _load_default_agents_base() -> Dict[str, Any]:
+    text = _DEFAULT_AGENTS_PATH.read_text(encoding="utf-8")
+    return _parse_agents_yaml_text(
+        text,
+        path_for_error=str(_DEFAULT_AGENTS_PATH),
+        validate_required_keys=True,
+    )
+
+
+def _merge_agents_with_defaults(cfg: Any) -> Dict[str, Any]:
+    """OpenEvolve 可能只輸出部分 agent；缺鍵時從 config/agents.yaml 補齊。"""
+    base = _load_default_agents_base()
+    if not isinstance(cfg, dict):
+        return base
+    merged = dict(base)
+    for k, v in cfg.items():
+        if isinstance(v, dict) and k in merged:
+            merged[k] = v
+    _validate_agents_mapping(
+        merged,
+        source=f"合併結果（底稿 {_DEFAULT_AGENTS_PATH} + 覆寫檔中的 agent 區塊）",
+    )
+    return merged
+
+
+def _resolve_agents_config(raw: Any) -> Dict[str, Any]:
+    if isinstance(raw, dict):
+        return _merge_agents_with_defaults(raw)
+    if isinstance(raw, str):
+        p = Path(raw)
+        if not p.is_absolute():
+            p = (_PROJECT_ROOT / raw).resolve()
+        text = p.read_text(encoding="utf-8")
+        loaded = _parse_agents_yaml_text(
+            text,
+            path_for_error=str(p),
+            validate_required_keys=False,
         )
+        return _merge_agents_with_defaults(loaded)
+    return _merge_agents_with_defaults({})
 
-    @task
-    def predict_review_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['predict_review_task']
-        )
 
-    @crew
+def _load_tasks_config() -> Dict[str, Any]:
+    text = _TASKS_PATH.read_text(encoding="utf-8")
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as e:
+        raise ValueError(
+            f"YAML 解析失敗（檔案：{_TASKS_PATH}）。請檢查 tasks_simulator.yaml 縮排與結構。\n"
+            f"原始錯誤：{e}"
+        ) from e
+    if not isinstance(data, dict):
+        raise TypeError(f"{_TASKS_PATH} 根節點必須為 mapping")
+    return data
+
+
+def parse_agents_yaml_file_for_flow(path: str) -> Dict[str, Any]:
+    """
+    供 serving_flow 讀取 agents_config_path：與 SimulationCrew 相同 sanitize + 錯誤訊息。
+    覆寫檔可為部分 agent；合併與必填檢查在 crew() 內 _resolve_agents_config 完成。
+    """
+    p = Path(path)
+    if not p.is_absolute():
+        p = (_PROJECT_ROOT / path).resolve()
+    text = p.read_text(encoding="utf-8")
+    return _parse_agents_yaml_text(
+        text,
+        path_for_error=str(p),
+        validate_required_keys=False,
+    )
+
+
+class SimulationCrew:
+    """由 tasks_simulator.yaml 驅動的完整 Sequential Crew（含 project_manager）。"""
+
+    agents_config: Any = str(_DEFAULT_AGENTS_PATH.relative_to(_PROJECT_ROOT))
+
+    def __init__(self) -> None:
+        # 與 CrewBase 相容：允許 serving_flow 直接指派 agents_config 為 dict
+        pass
+
+    def _build_agents(self, agents_cfg: Dict[str, Any]) -> Dict[str, Agent]:
+        search_tool = get_search_internet_tool()
+        return {
+            "internet_researcher": Agent(
+                config=agents_cfg["internet_researcher"],
+                verbose=False,
+                tools=[search_tool],
+            ),
+            "user_analyst": Agent(
+                config=agents_cfg["user_analyst"],
+                verbose=False,
+                tools=[lookup_user_by_id],
+            ),
+            "item_analyst": Agent(
+                config=agents_cfg["item_analyst"],
+                verbose=False,
+                tools=[lookup_item_by_id],
+                max_rpm=10,
+            ),
+            "review_analyst": Agent(
+                config=agents_cfg["review_analyst"],
+                verbose=False,
+                tools=[
+                    lookup_reviews_by_user_and_item,
+                    lookup_reviews_by_item,
+                    lookup_reviews_by_user,
+                ],
+            ),
+            "prediction_modeler": Agent(
+                config=agents_cfg["prediction_modeler"],
+                verbose=False,
+            ),
+            "reviewer": Agent(
+                config=agents_cfg["reviewer"],
+                verbose=False,
+            ),
+            "project_manager": Agent(
+                config=agents_cfg["project_manager"],
+                verbose=False,
+                tools=[delegate_work_to_coworker],
+            ),
+        }
+
     def crew(self) -> Crew:
+        agents_cfg = _resolve_agents_config(
+            getattr(self, "agents_config", None) or SimulationCrew.agents_config
+        )
+        tasks_cfg = _load_tasks_config()
+
+        by_name = self._build_agents(agents_cfg)
+        agents_list = [
+            by_name["internet_researcher"],
+            by_name["user_analyst"],
+            by_name["item_analyst"],
+            by_name["review_analyst"],
+            by_name["prediction_modeler"],
+            by_name["reviewer"],
+            by_name["project_manager"],
+        ]
+
+        tasks_list: List[Task] = []
+        for key in _TASK_ORDER:
+            if key not in tasks_cfg:
+                raise KeyError(f"tasks_simulator.yaml 缺少 task 定義: {key}")
+            block = tasks_cfg[key]
+            if not isinstance(block, dict):
+                raise TypeError(f"task {key} 必須為 mapping")
+            agent_key = block.get("agent")
+            if agent_key not in by_name:
+                raise KeyError(f"task {key} 的 agent={agent_key!r} 無對應 Agent")
+            cfg_copy = {k: v for k, v in block.items() if k != "agent"}
+            tasks_list.append(
+                Task(config=cfg_copy, agent=by_name[agent_key]),
+            )
+
         return Crew(
-            agents=[self.user_analyst(), self.item_analyst(), self.prediction_modeler()],
-            tasks=[self.analyze_user_task(), self.analyze_item_task(), self.predict_review_task()],
+            agents=agents_list,
+            tasks=tasks_list,
             process=Process.sequential,
-            verbose=True
+            verbose=os.environ.get("SIMULATION_CREW_VERBOSE", "true").lower() in ("1", "true", "yes"),
         )

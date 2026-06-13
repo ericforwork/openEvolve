@@ -8,7 +8,7 @@ if current_dir not in sys.path:
 
 from dotenv import load_dotenv
 
-# Load NVIDIA NIM API from AgentSocietyChallenge .env
+# Load LLM credentials from project root .env (OpenAI-compatible API)
 load_dotenv(os.path.join(current_dir, ".env"))
 
 from websocietysimulator.agent import SimulationAgent

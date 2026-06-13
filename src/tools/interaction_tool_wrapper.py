@@ -7,6 +7,12 @@ def inject_simulator_tool(tool_instance):
     global _GLOBAL_INTERACTION_TOOL
     _GLOBAL_INTERACTION_TOOL = tool_instance
 
+
+def get_injected_interaction_tool():
+    """供 Simulator 綁定後的 lookup 類工具讀取目前 InteractionTool 實例（未注入則為 None）。"""
+    return _GLOBAL_INTERACTION_TOOL
+
+
 @tool("Interaction Tool Wrapper")
 def interaction_tool_wrapper(query_type: str, target_id: str) -> str:
     """

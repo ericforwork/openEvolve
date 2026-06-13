@@ -91,7 +91,7 @@ pip install <package>
 ## 初次設定
 
 ```bash
-cp .env.example .env       # 填入 OPENAI_API_KEY 與 OPENAI_API_BASE
+cp .env.example .env       # 填入 OPENAI_API_KEY、OPENAI_API_BASE、OPENAI_MODEL_NAME
 make install               # 等同 uv sync
 ```
 
@@ -101,7 +101,7 @@ make install               # 等同 uv sync
 
 ```bash
 make test-mock             # Mock 模式（零成本結構驗證）
-make test                  # 真實 LLM（NVIDIA NIM）
+make test                  # 真實 LLM（依 .env，預設範例為 OpenAI gpt-4.1-mini）
 make smoke                 # Smoke test（只跑 1 筆）
 ```
 

@@ -1,3 +1,4 @@
+# EVOLVE-BLOCK-START
 user_analyst:
   role: >
     Yelp User Profiler
@@ -28,7 +29,6 @@ review_analyst:
     You use the lookup_reviews_by_user_and_item tool to retrieve review histories.
     If no direct review exists between the user and the business, you analyze the user's typical ratings/sentiments and the business's common feedback separately.
 
-# EVOLVE-BLOCK-START
 prediction_modeler:
   role: >
     Expert Yelp Rating & Review Predictor

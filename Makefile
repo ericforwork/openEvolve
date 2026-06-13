@@ -47,14 +47,13 @@ smoke:  ## Smoke test（只跑 1 個 task）
 ifeq ($(strip $(OUTPUT)),)
 .PHONY: evolve
 evolve:  ## 啟動 OpenEvolve 進化（可調 ITERS=N TASKS=N；輸出至 OUTPUT_BASE/時間戳）
-	@TS=$$(uv run python -c "import time; print(time.strftime('%Y%m%d_%H%M%S'))"); \
-	OUT="$(OUTPUT_BASE)/$$TS"; \
-	echo "[evolve] OpenEvolve 輸出目錄: $$OUT"; \
+	@$(eval EVOLVE_OUT := $(OUTPUT_BASE)/$(shell uv run python scripts/evolve_timestamp.py))
+	@echo [evolve] OpenEvolve 輸出目錄: $(EVOLVE_OUT)
 	uv run --env-file .env python -m openevolve.cli \
 	    config/agents_evolving.yaml \
 	    openevolve_evaluator.py \
 	    --config config/openevolve_config.yaml \
-	    --output $$OUT \
+	    --output $(EVOLVE_OUT) \
 	    --iterations $(ITERS)
 else
 .PHONY: evolve

@@ -71,12 +71,13 @@ This CrewAI Sandbox version exclusively utilizes [Astral `uv`](https://github.co
    *If the environment is set up correctly, this will simulate the CrewAI agents using a mocked LLM (zero token cost) and print a successful JSON evaluation score.*
 
 4. Connect to Real LLM and Embedding Models:
-   To unleash the genuine reasoning capabilities of the CrewAI agents, create a `.env` file in the root directory and configure your official or third-party OpenAI-compatible endpoints (e.g., NVIDIA NIM, Minimax).
+   To unleash the genuine reasoning capabilities of the CrewAI agents, create a `.env` file in the root directory and configure an OpenAI-compatible endpoint (official OpenAI, Azure OpenAI with a compatible base URL, NVIDIA NIM, etc.).
    ```bash
-   # .env example
-   OPENAI_API_KEY=your_actual_api_key_here
-   OPENAI_API_BASE=https://integrate.api.nvidia.com/v1  # Example for NVIDIA NIM
-   # OPENAI_API_BASE=https://api.minimax.chat/v1        # Example for Minimax
+   # .env example (OpenAI)
+   OPENAI_API_KEY=sk-...
+   OPENAI_API_BASE=https://api.openai.com/v1
+   OPENAI_MODEL_NAME=gpt-4.1-mini
+   # OPENAI_API_BASE=https://integrate.api.nvidia.com/v1  # optional: NVIDIA NIM
    ```
    Once the credentials are set, run the full realistic simulation without the mock flag:
    ```bash

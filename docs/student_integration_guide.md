@@ -107,7 +107,7 @@ git clone https://github.com/yuchieh/AgentSocietyChallenge_OpenEvolve.git
 cd AgentSocietyChallenge_OpenEvolve
 
 cp .env.example .env
-# 編輯 .env 填入你的 OPENAI_API_KEY 與 OPENAI_API_BASE（NVIDIA NIM 等）
+# 編輯 .env 填入 OPENAI_API_KEY、OPENAI_API_BASE、OPENAI_MODEL_NAME（預設範例為 OpenAI gpt-4.1-mini）
 
 make install      # uv sync
 ```
@@ -169,7 +169,7 @@ user_analyst:
     Analyze user {user_id}'s historical reviews and preferences
   backstory: >
     You are an expert behavior analyst...
-  llm: openai/minimaxai/minimax-m2.7
+  llm: openai/gpt-4.1-mini
 
 item_analyst:
   role: >
@@ -178,7 +178,7 @@ item_analyst:
     Analyze business {item_id}'s characteristics and reputation
   backstory: >
     You are a restaurant critic...
-  llm: openai/minimaxai/minimax-m2.7
+  llm: openai/gpt-4.1-mini
 
 # === 純推理 Agent 放在 EVOLVE-BLOCK 內，讓 LLM 演化 prompt ===
 # EVOLVE-BLOCK-START
@@ -189,7 +189,7 @@ prediction_modeler:
     Predict the exact Star rating (1.0 to 5.0) and generate a mock review text...
   backstory: >
     You are a master of predicting human behavior...
-  llm: openai/minimaxai/minimax-m2.7
+  llm: openai/gpt-4.1-mini
 # EVOLVE-BLOCK-END
 ```
 

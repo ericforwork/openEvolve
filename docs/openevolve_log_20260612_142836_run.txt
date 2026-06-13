@@ -1,0 +1,28 @@
+2026-06-12 14:28:40,654 - openevolve.controller - INFO - Logging to config/openevolve_output/20260612_142836\logs\openevolve_20260612_142840.log
+2026-06-12 14:28:40,715 - openevolve.controller - INFO - Set random seed to 42 for reproducibility
+2026-06-12 14:28:41,667 - openevolve.llm.openai - INFO - Initialized OpenAI LLM with model: minimaxai/minimax-m2.7
+2026-06-12 14:28:41,669 - openevolve.llm.ensemble - INFO - Initialized LLM ensemble with models: minimaxai/minimax-m2.7 (weight: 1.00)
+2026-06-12 14:28:42,435 - openevolve.prompt.sampler - INFO - Initialized prompt sampler
+2026-06-12 14:28:42,446 - openevolve.prompt.sampler - INFO - Set custom templates: system=evaluator_system_message, user=None
+2026-06-12 14:28:42,449 - openevolve.database - INFO - Initialized program database with 0 programs
+2026-06-12 14:29:23,810 - crewai.cli.config - INFO - Using config path: C:\Users\eric90120501\.config\crewai\settings.json
+2026-06-12 14:29:25,113 - openevolve.evaluator - INFO - Successfully loaded evaluation function from openevolve_evaluator.py
+2026-06-12 14:29:25,114 - openevolve.evaluator - INFO - Initialized evaluator with openevolve_evaluator.py
+2026-06-12 14:29:25,114 - openevolve.controller - INFO - Initialized OpenEvolve with config/agents_evolving.yaml
+2026-06-12 14:29:25,115 - openevolve.controller - INFO - Adding initial program to database
+2026-06-12 14:29:25,120 - websocietysimulator - INFO - Start initializing Simulator
+2026-06-12 14:29:25,127 - websocietysimulator - INFO - Using CacheInteractionTool
+2026-06-12 14:29:25,128 - websocietysimulator - INFO - Initializing InteractionTool with data directory: dummy_dataset
+2026-06-12 14:29:28,268 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-06-12 14:29:35,386 - websocietysimulator - INFO - Simulator initialized
+2026-06-12 14:29:35,433 - websocietysimulator - INFO - Loaded 41 task-groundtruth pairs
+2026-06-12 14:29:35,434 - websocietysimulator - INFO - Agent class set
+2026-06-12 14:29:35,437 - websocietysimulator - INFO - Running simulation
+2026-06-12 14:29:35,437 - websocietysimulator - INFO - Total tasks: 1
+2026-06-12 14:29:35,438 - websocietysimulator - INFO - Running with 1 threads
+2026-06-12 14:34:35,455 - websocietysimulator - WARNING - Task 0 timed out
+2026-06-12 14:34:35,460 - websocietysimulator - INFO - Simulation finished
+2026-06-12 14:34:35,461 - websocietysimulator - INFO - Evaluating simulation results
+2026-06-12 14:34:35,463 - websocietysimulator - WARNING - Warning: Number of simulation outputs (1) does not match ground truth data (41)
+2026-06-12 14:34:35,938 - websocietysimulator - INFO - Evaluation finished
+2026-06-12 15:30:50,755 - openevolve.process_parallel - WARNING - Iteration 10 error: Generated code exceeds maximum length (10422 > 10000)

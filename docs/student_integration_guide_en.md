@@ -108,7 +108,7 @@ git clone https://github.com/yuchieh/AgentSocietyChallenge_OpenEvolve.git
 cd AgentSocietyChallenge_OpenEvolve
 
 cp .env.example .env
-# Edit .env to fill in OPENAI_API_KEY and OPENAI_API_BASE (e.g., NVIDIA NIM)
+# Edit .env: OPENAI_API_KEY, OPENAI_API_BASE, OPENAI_MODEL_NAME (defaults in .env.example target OpenAI gpt-4.1-mini)
 
 make install      # uv sync
 ```
@@ -170,7 +170,7 @@ user_analyst:
     Analyze user {user_id}'s historical reviews and preferences
   backstory: >
     You are an expert behavior analyst...
-  llm: openai/minimaxai/minimax-m2.7
+  llm: openai/gpt-4.1-mini
 
 item_analyst:
   role: >
@@ -179,7 +179,7 @@ item_analyst:
     Analyze business {item_id}'s characteristics and reputation
   backstory: >
     You are a restaurant critic...
-  llm: openai/minimaxai/minimax-m2.7
+  llm: openai/gpt-4.1-mini
 
 # === Pure reasoning agents go INSIDE the EVOLVE-BLOCK ===
 # EVOLVE-BLOCK-START
@@ -190,7 +190,7 @@ prediction_modeler:
     Predict the exact Star rating (1.0 to 5.0) and generate a mock review text...
   backstory: >
     You are a master of predicting human behavior...
-  llm: openai/minimaxai/minimax-m2.7
+  llm: openai/gpt-4.1-mini
 # EVOLVE-BLOCK-END
 ```
 

@@ -2,7 +2,7 @@ import json
 import re
 from pydantic import BaseModel
 from crewai.flow.flow import Flow, listen, start
-from src.crews.simulation_crew import SimulationCrew
+from src.crews.simulation_crew import SimulationCrew, parse_agents_yaml_file_for_flow
 
 
 def extract_json_from_output(raw_output: str) -> dict:
@@ -71,9 +71,9 @@ class AgentSocietyServingFlow(Flow[InferenceState]):
         # 啟動並執行 Crew AI 團隊
         crew_instance = SimulationCrew()
         if self.agents_config_path:
-            import yaml
-            with open(self.agents_config_path, "r", encoding='utf-8') as f:
-                crew_instance.agents_config = yaml.safe_load(f)
+            crew_instance.agents_config = parse_agents_yaml_file_for_flow(
+                self.agents_config_path
+            )
 
         result = crew_instance.crew().kickoff(inputs=inputs)
         
