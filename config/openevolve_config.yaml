@@ -1,8 +1,9 @@
-# OpenEvolve configuration — evolve CrewAI *task* prompts (tasks_simulator.yaml)
-# Initial program : config/tasks_simulator.yaml
+# OpenEvolve — joint evolution of agents + tasks (single file, one EVOLVE-BLOCK)
+# Initial program : config/openevolve_agents_tasks.yaml
+# Regenerate bundle: uv run python scripts/build_openevolve_agents_tasks_program.py
 # Evaluator       : openevolve_evaluator.py
 # Run command     :
-#   uv run openevolve config/tasks_simulator.yaml openevolve_evaluator.py \
+#   uv run openevolve config/openevolve_agents_tasks.yaml openevolve_evaluator.py \
 #     --config config/openevolve_config.yaml \
 #     --output config/openevolve_output
 
@@ -17,7 +18,7 @@ random_seed: 42
 # (diff-based mode generates SEARCH/REPLACE patches that easily corrupt YAML structure)
 diff_based_evolution: false
 language: "text"
-max_code_length: 18000   # tasks_simulator.yaml + EVOLVE-BLOCK exceeds 10k chars
+max_code_length: 32000   # agents + tasks bundle grows with evolution
 
 # --- LLM ----------------------------------------------------------------------
 llm:
@@ -37,26 +38,31 @@ prompt:
   system_message: |
     You are an expert prompt engineer for multi-agent CrewAI pipelines on a review platform.
 
-    You are evolving the **task definitions** inside `config/tasks_simulator.yaml` (the section
-    between `# EVOLVE-BLOCK-START` and `# EVOLVE-BLOCK-END`). Each task is a YAML mapping with
-    fields such as `description`, `expected_output`, and `agent` (the CrewAI agent name).
+    The program file has **one** `# EVOLVE-BLOCK-START` / `# EVOLVE-BLOCK-END` region containing two
+    top-level YAML keys: `agents` and `tasks`.
 
-    Goal: improve `combined_score` from the simulator — ratings closer to ground truth and
-    reviews that match user tone — by tightening instructions inside task `description` /
-    `expected_output` without breaking the toolchain.
+    - Under `agents`, each key is a CrewAI agent name mapping to `role`, `goal`, and `backstory`.
+    - Under `tasks`, each key is a pipeline task name mapping to `description`, `expected_output`,
+      and `agent` (must reference an agent defined under `agents`).
+
+    Goal: improve simulator `combined_score` (rating + review quality) without breaking tool use
+    or the final JSON contract (`stars`, `review`).
 
     Hard rules:
-    - Output **valid YAML only** for the full file (keep the two EVOLVE-BLOCK comment lines).
-    - Do **not** rename or delete any of these top-level task keys (order is fixed in code):
+    - Output **valid YAML only** for the full file; keep the EVOLVE-BLOCK comment lines.
+    - Do **not** remove the top-level keys `agents` or `tasks`.
+    - Do **not** rename or delete these task keys under `tasks` (execution order is fixed in code):
       internet_research_task, analyze_user_task, analyze_item_task, analyze_reviews_task,
       collaborative_reasoning_task, predict_review_task, review_prediction_task,
       final_prediction_task, coordinate_workflow_task.
-    - Do **not** change the `agent:` field of any task (must stay aligned with `config/agents.yaml`).
-    - For tasks that use ReAct tools (`lookup_*`, `search_internet`), keep the **exact**
-      Action / Action Input patterns and tool names required in the current descriptions;
-      you may clarify wording but must not remove mandatory steps or invent alternate tools.
-    - Preserve final JSON-output tasks so the pipeline still ends with a JSON object containing
-      "stars" and "review" as required by the simulator contract.
+    - Do **not** rename or delete these agent keys under `agents` (crew wiring depends on them):
+      internet_researcher, user_analyst, item_analyst, review_analyst, prediction_modeler,
+      reviewer, project_manager.
+    - Keep every task's `agent:` field identical to an existing agent key (do not point tasks at
+      non-existent agents).
+    - For tasks that use ReAct tools (`lookup_*`, `search_internet`), preserve required Action /
+      Action Input patterns and tool names; clarify wording only.
+    - Preserve final prediction tasks so the pipeline still ends with JSON containing "stars" and "review".
   num_top_programs: 3
   num_diverse_programs: 2
   include_artifacts: false
