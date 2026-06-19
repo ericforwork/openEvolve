@@ -38,9 +38,9 @@ Push worktree 分支 → 開 PR → merge 進 main → 本地 pull main
 | `src/flows/serving_flow.py` | Flow 與 JSON 解析 | ⚠️ 僅 OpenEvolve 相關部分（如 `agents_config_path`）可修改 |
 | `src/crews/simulation_crew.py` | CrewAI Crew 組裝 | ✅ 可修改 |
 | `config/agents.yaml` | Agent 角色定義（正式推論用） | ✅ 可修改 |
-| `config/tasks_simulator.yaml` | Task 定義（含 EVOLVE-BLOCK；OpenEvolve 預設進化標的） | ✅ 可修改 |
-| `config/agents_evolving.yaml` | 僅供手動實驗「進化 agents」時作為 CLI 初始檔（預設流程已改進化 tasks） | ✅ 可修改 |
-| `config/tasks.yaml` | Task 指令設計 | ✅ 可修改 |
+| `config/openevolve_agents_tasks.yaml` | OpenEvolve **預設**聯合進化檔（`agents` + `tasks` 單檔、單一 EVOLVE-BLOCK）；可由腳本從 `agents_evolving` + `tasks_simulator` 重產 | ✅ 可修改（建議改源檔後重跑 script） |
+| `config/agents_evolving.yaml` | 聯合進化時為 `agents` 區塊來源；亦可單獨作為 CLI 初始檔（agents-only） | ✅ 可修改 |
+| `config/tasks_simulator.yaml` | Crew 任務鏈底稿；聯合進化時為 `tasks` 區塊來源；亦可單獨作為 CLI 初始檔（tasks-only） | ✅ 可修改 |
 | `config/openevolve_config.yaml` | OpenEvolve 執行設定 | ✅ 可修改 |
 | `openevolve_evaluator.py` | OpenEvolve 評估函式 | ✅ 可修改 |
 
@@ -132,7 +132,7 @@ make visualize OUTPUT=config/openevolve_output/20250612_143022   # 視覺化須�
 
 ```bash
 OPENEVOLVE_NUM_TASKS=5 uv run --env-file .env python -m openevolve.cli \
-  config/tasks_simulator.yaml openevolve_evaluator.py \
+  config/openevolve_agents_tasks.yaml openevolve_evaluator.py \
   --config config/openevolve_config.yaml \
   --output config/openevolve_output/20250612_143022 \
   --iterations 10
@@ -142,8 +142,9 @@ OPENEVOLVE_NUM_TASKS=5 uv run --env-file .env python -m openevolve.cli \
 
 ## OpenEvolve 整合注意事項
 
-- **進化標的**：`config/tasks_simulator.yaml`（內含**恰好一個** `EVOLVE-BLOCK-START` / `EVOLVE-BLOCK-END`）。`make evolve` 與 evaluator 以此為初始程式；模擬時 agents 固定為 `config/agents.yaml`（evaluator 會清除 `OPENEVOLVE_AGENTS_YAML`）。
+- **進化標的（預設）**：`config/openevolve_agents_tasks.yaml`（單檔含 `agents:` + `tasks:`，一段 `EVOLVE-BLOCK`）。`openevolve_evaluator` 會拆成兩個暫存 YAML 並設定 `OPENEVOLVE_AGENTS_YAML` 與 `OPENEVOLVE_TASKS_YAML`。
+- **重產 bundle**（修改 `agents_evolving.yaml` 或 `tasks_simulator.yaml` 後）：`uv run python scripts/build_openevolve_agents_tasks_program.py`
+- **僅進化 tasks 或僅 agents**：CLI 第一參數改為 `config/tasks_simulator.yaml` 或 `config/agents_evolving.yaml`；evaluator 會依根節點自動辨識（tasks-only / agents-only）。
 - `evaluate()` 必須是**模組頂層函式**，簽名為 `evaluate(program_path: str) -> dict`，且回傳 dict 必須包含 `combined_score` key
-- `config/openevolve_config.yaml` 已設定 `diff_based_evolution: false`（full rewrite 模式）與 `cascade_evaluation: false`；`max_code_length` 已拉高以容納完整 tasks 檔
-- 具 **ReAct / lookup_*** 的 task 須保留工具名稱與 Action／Action Input 格式；**勿改**各 task 的 `agent:` 欄位（須與 `agents.yaml` 內角色鍵一致）
-- 若仍要實驗「只進化 agents」，可改 CLI 第一參數為 `config/agents_evolving.yaml`，並在 `openevolve_evaluator.py` 改回設定 `OPENEVOLVE_AGENTS_YAML`（與本 repo 預設 tasks 流程二擇一）
+- `config/openevolve_config.yaml` 已設定 `diff_based_evolution: false`（full rewrite 模式）與 `cascade_evaluation: false`；`max_code_length` 已拉高以容納 agents+tasks bundle
+- 具 **ReAct / lookup_*** 的 task 須保留工具名稱與 Action／Action Input 格式；聯合進化時 **勿改**各 task 的 `agent:` 與 `agents` 內對應角色鍵名

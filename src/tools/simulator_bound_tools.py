@@ -1,11 +1,12 @@
 """
-CrewAI tools whose names／介面對齊 tasks_simulator.yaml（lookup_*、search_internet），
+CrewAI tools whose names／介面對齊 tasks_simulator.yaml（search_*、lookup_*、search_internet），
 底層改走 Simulator 注入的 InteractionTool（與競賽資料一致）。
 未安裝 Serper 時 search_internet 為 stub，避免缺依賴。
 """
 from __future__ import annotations
 
 import os
+import re
 
 from crewai.tools import tool
 
@@ -14,6 +15,93 @@ from src.tools import interaction_tool_wrapper as _itw
 
 def _interaction():
     return _itw.get_injected_interaction_tool()
+
+
+_ID_TOKEN = r"[\w\-]+"
+
+
+def _extract_user_id(search_query: str) -> str | None:
+    for pattern in (
+        rf"user_id\s*(?:is|:)\s*({_ID_TOKEN})",
+        rf"for user\s+({_ID_TOKEN})",
+        rf"user\s+({_ID_TOKEN})",
+    ):
+        m = re.search(pattern, search_query, re.I)
+        if m:
+            return m.group(1)
+    return None
+
+
+def _extract_item_id(search_query: str) -> str | None:
+    for pattern in (
+        rf"item_id\s*(?:is|:)\s*({_ID_TOKEN})",
+        rf"for business\s+({_ID_TOKEN})",
+        rf"business\s+({_ID_TOKEN})",
+        rf"item\s+({_ID_TOKEN})",
+    ):
+        m = re.search(pattern, search_query, re.I)
+        if m:
+            return m.group(1)
+    return None
+
+
+@tool("search_user_profile_data")
+def search_user_profile_data(search_query: str) -> str:
+    """以自然語言 search_query 查詢使用者 profile（須含 user_id）。"""
+    it = _interaction()
+    if it is None:
+        return "Error: InteractionTool has not been injected by the Simulator."
+    user_id = _extract_user_id(search_query)
+    if not user_id:
+        return (
+            "Error: include user_id in search_query, e.g. "
+            "'What are the review habits for user <user_id>'"
+        )
+    u = it.get_user(user_id=user_id)
+    return str(u) if u is not None else "No user found"
+
+
+@tool("search_restaurant_feature_data")
+def search_restaurant_feature_data(search_query: str) -> str:
+    """以自然語言 search_query 查詢商家／商品 profile（須含 item_id）。"""
+    it = _interaction()
+    if it is None:
+        return "Error: InteractionTool has not been injected by the Simulator."
+    item_id = _extract_item_id(search_query)
+    if not item_id:
+        return (
+            "Error: include item_id in search_query, e.g. "
+            "'What are the categories for business <item_id>'"
+        )
+    item = it.get_item(item_id=item_id)
+    return str(item) if item is not None else "No item found"
+
+
+@tool("search_historical_reviews_data")
+def search_historical_reviews_data(search_query: str) -> str:
+    """以自然語言 search_query 查詢歷史評論（search_query 須含 user_id 或 item_id）。"""
+    it = _interaction()
+    if it is None:
+        return "Error: InteractionTool has not been injected by the Simulator."
+    user_id = _extract_user_id(search_query)
+    item_id = _extract_item_id(search_query)
+    if user_id and item_id:
+        reviews = it.get_reviews(item_id=item_id) or []
+        matched = [r for r in reviews if str(r.get("user_id", "")) == str(user_id)]
+        if matched:
+            return str(matched)
+        ur = it.get_reviews(user_id=user_id) or []
+        return str(ur) if ur else "No reviews found for this user-item pair."
+    if user_id:
+        reviews = it.get_reviews(user_id=user_id) or []
+        return str(reviews) if reviews else "No reviews found for this user."
+    if item_id:
+        reviews = it.get_reviews(item_id=item_id) or []
+        return str(reviews) if reviews else "No reviews found for this item."
+    return (
+        "Error: include user_id or item_id in search_query, e.g. "
+        "'past reviews where user_id is <id>' or 'reviews about business <item_id>'"
+    )
 
 
 @tool("lookup_user_by_id")

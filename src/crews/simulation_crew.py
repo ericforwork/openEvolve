@@ -16,42 +16,36 @@ from crewai import Agent, Crew, Process, Task
 
 from src.utils.yaml_sanitize import sanitize_agents_yaml_text
 from src.tools.simulator_bound_tools import (
-    delegate_work_to_coworker,
     get_search_internet_tool,
-    lookup_item_by_id,
     lookup_reviews_by_item,
     lookup_reviews_by_user,
     lookup_reviews_by_user_and_item,
-    lookup_user_by_id,
+    search_historical_reviews_data,
+    search_restaurant_feature_data,
+    search_user_profile_data,
 )
 
 # 與 config/tasks_simulator.yaml 中定義順序一致（依檔案由上而下）
 _TASK_ORDER: List[str] = [
-    "internet_research_task",
     "analyze_user_task",
     "analyze_item_task",
+    "simulate_review_task",
+    "internet_research_task",
     "analyze_reviews_task",
-    "collaborative_reasoning_task",
-    "predict_review_task",
-    "review_prediction_task",
-    "final_prediction_task",
-    "coordinate_workflow_task",
 ]
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _DEFAULT_AGENTS_PATH = _PROJECT_ROOT / "config" / "agents.yaml"
 _DEFAULT_TASKS_PATH = _PROJECT_ROOT / "config" / "tasks_simulator.yaml"
 
-# 與 _build_agents / tasks_simulator.yaml 一致，缺一不可
+# 與 tasks_simulator.yaml 中 task.agent 指派一致
 _REQUIRED_AGENT_KEYS: frozenset[str] = frozenset(
     {
-        "internet_researcher",
         "user_analyst",
         "item_analyst",
-        "review_analyst",
         "prediction_modeler",
-        "reviewer",
-        "project_manager",
+        "internet_researcher",
+        "review_analyst",
     }
 )
 
@@ -258,7 +252,7 @@ def parse_agents_yaml_file_for_flow(path: str) -> Dict[str, Any]:
 
 
 class SimulationCrew:
-    """由 tasks_simulator.yaml 驅動的完整 Sequential Crew（含 project_manager）。"""
+    """由 tasks_simulator.yaml 驅動的 Sequential Crew（5 task / 5 agent）。"""
 
     agents_config: Any = str(_DEFAULT_AGENTS_PATH.relative_to(_PROJECT_ROOT))
 
@@ -269,21 +263,25 @@ class SimulationCrew:
     def _build_agents(self, agents_cfg: Dict[str, Any]) -> Dict[str, Agent]:
         search_tool = get_search_internet_tool()
         return {
-            "internet_researcher": Agent(
-                config=agents_cfg["internet_researcher"],
-                verbose=False,
-                tools=[search_tool],
-            ),
             "user_analyst": Agent(
                 config=agents_cfg["user_analyst"],
                 verbose=False,
-                tools=[lookup_user_by_id],
+                tools=[search_user_profile_data, search_historical_reviews_data],
             ),
             "item_analyst": Agent(
                 config=agents_cfg["item_analyst"],
                 verbose=False,
-                tools=[lookup_item_by_id],
+                tools=[search_restaurant_feature_data, search_historical_reviews_data],
                 max_rpm=10,
+            ),
+            "prediction_modeler": Agent(
+                config=agents_cfg["prediction_modeler"],
+                verbose=False,
+            ),
+            "internet_researcher": Agent(
+                config=agents_cfg["internet_researcher"],
+                verbose=False,
+                tools=[search_tool],
             ),
             "review_analyst": Agent(
                 config=agents_cfg["review_analyst"],
@@ -293,19 +291,6 @@ class SimulationCrew:
                     lookup_reviews_by_item,
                     lookup_reviews_by_user,
                 ],
-            ),
-            "prediction_modeler": Agent(
-                config=agents_cfg["prediction_modeler"],
-                verbose=False,
-            ),
-            "reviewer": Agent(
-                config=agents_cfg["reviewer"],
-                verbose=False,
-            ),
-            "project_manager": Agent(
-                config=agents_cfg["project_manager"],
-                verbose=False,
-                tools=[delegate_work_to_coworker],
             ),
         }
 
@@ -317,13 +302,11 @@ class SimulationCrew:
 
         by_name = self._build_agents(agents_cfg)
         agents_list = [
-            by_name["internet_researcher"],
             by_name["user_analyst"],
             by_name["item_analyst"],
-            by_name["review_analyst"],
             by_name["prediction_modeler"],
-            by_name["reviewer"],
-            by_name["project_manager"],
+            by_name["internet_researcher"],
+            by_name["review_analyst"],
         ]
 
         tasks_list: List[Task] = []

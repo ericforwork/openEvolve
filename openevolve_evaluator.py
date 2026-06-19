@@ -10,6 +10,7 @@ project_dir = os.path.dirname(os.path.abspath(__file__))
 if project_dir not in sys.path:
     sys.path.append(project_dir)
 
+from src.utils.evolve_yaml_guard import validate_evolved_program_structure
 from websocietysimulator import Simulator
 from crewai_simulation_agent import CrewAISimulationAgent
 from src.utils.yaml_sanitize import sanitize_agents_yaml_text
@@ -21,15 +22,11 @@ SIM_TIMEOUT_SEC = int(os.environ.get("OPENEVOLVE_SIM_TIMEOUT", "900"))
 # 扁平「僅 tasks」程式檔偵測用（與 SimulationCrew._TASK_ORDER 一致）
 _TASK_ROOT_KEYS = frozenset(
     {
-        "internet_research_task",
         "analyze_user_task",
         "analyze_item_task",
+        "simulate_review_task",
+        "internet_research_task",
         "analyze_reviews_task",
-        "collaborative_reasoning_task",
-        "predict_review_task",
-        "review_prediction_task",
-        "final_prediction_task",
-        "coordinate_workflow_task",
     }
 )
 
@@ -125,6 +122,11 @@ def evaluate(program_path: str) -> dict:
     where preference_estimation = 1 - normalized_star_MAE.
     """
     simulator = _get_simulator()
+    ok, guard_msg = validate_evolved_program_structure(program_path)
+    if not ok:
+        print(f"[Evaluator] Structure guard: REJECTED — {guard_msg}")
+        return {"combined_score": 0.0}
+
     temp_paths: list[str] = []
     try:
         agents_path, tasks_path, temp_paths, label = _prepare_evolve_env(program_path)
