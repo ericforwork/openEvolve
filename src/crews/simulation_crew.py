@@ -25,13 +25,13 @@ from src.tools.simulator_bound_tools import (
     search_user_profile_data,
 )
 
-# 與 config/tasks_simulator.yaml 中定義順序一致（依檔案由上而下）
+# 與 config/tasks_simulator.yaml 中定義順序一致（依檔案由上而下；最後一步必須輸出 JSON）
 _TASK_ORDER: List[str] = [
+    "internet_research_task",
     "analyze_user_task",
     "analyze_item_task",
-    "simulate_review_task",
-    "internet_research_task",
     "analyze_reviews_task",
+    "simulate_review_task",
 ]
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent

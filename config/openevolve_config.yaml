@@ -52,8 +52,8 @@ prompt:
     - Output **valid YAML only** for the full file; keep the EVOLVE-BLOCK comment lines.
     - Do **not** remove the top-level keys `agents` or `tasks`.
     - Do **not** rename or delete these task keys under `tasks` (execution order is fixed in code):
-      analyze_user_task, analyze_item_task, simulate_review_task, internet_research_task,
-      analyze_reviews_task.
+      internet_research_task, analyze_user_task, analyze_item_task, analyze_reviews_task,
+      simulate_review_task (must remain last — final JSON output).
     - Do **not** rename or delete these agent keys under `agents` (crew wiring depends on them):
       user_analyst, item_analyst, prediction_modeler, review_analyst, internet_researcher.
     - Keep every task's `agent:` field identical to an existing agent key (do not point tasks at
