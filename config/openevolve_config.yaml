@@ -52,13 +52,12 @@ prompt:
     - Output **valid YAML only** for the full file; keep the EVOLVE-BLOCK comment lines.
     - Do **not** remove the top-level keys `agents` or `tasks`.
     - Do **not** rename or delete these task keys under `tasks` (execution order is fixed in code):
-      internet_research_task, analyze_user_task, analyze_item_task, analyze_reviews_task,
-      simulate_review_task (must remain last — final JSON output).
+      analyze_user_task, analyze_item_task, simulate_review_task (must remain last — final JSON output).
     - Do **not** rename or delete these agent keys under `agents` (crew wiring depends on them):
-      user_analyst, item_analyst, prediction_modeler, review_analyst, internet_researcher.
+      user_analyst, item_analyst, prediction_modeler.
     - Keep every task's `agent:` field identical to an existing agent key (do not point tasks at
       non-existent agents).
-    - For tasks that use ReAct tools (`search_*`, `lookup_*`, `search_internet`), preserve required Action /
+    - For tasks that use ReAct tools (`search_*`, `lookup_*`), preserve required Action /
       Action Input patterns and tool names; clarify wording only.
     - Preserve final prediction tasks so the pipeline still ends with JSON containing "stars" and "review".
     - **Structural contract (enforced by evaluator):** the set of top-level keys under `agents` and `tasks`

@@ -16,11 +16,7 @@ from crewai import Agent, Crew, Process, Task
 
 from src.utils.yaml_sanitize import sanitize_agents_yaml_text
 from src.tools.simulator_bound_tools import (
-    get_search_internet_tool,
     lookup_item_by_id,
-    lookup_reviews_by_item,
-    lookup_reviews_by_user,
-    lookup_reviews_by_user_and_item,
     lookup_user_by_id,
     search_historical_reviews_data,
     search_restaurant_feature_data,
@@ -29,10 +25,8 @@ from src.tools.simulator_bound_tools import (
 
 # 與 config/tasks_simulator.yaml 中定義順序一致（依檔案由上而下；最後一步必須輸出 JSON）
 _TASK_ORDER: List[str] = [
-    "internet_research_task",
     "analyze_user_task",
     "analyze_item_task",
-    "analyze_reviews_task",
     "simulate_review_task",
 ]
 
@@ -46,8 +40,6 @@ _REQUIRED_AGENT_KEYS: frozenset[str] = frozenset(
         "user_analyst",
         "item_analyst",
         "prediction_modeler",
-        "internet_researcher",
-        "review_analyst",
     }
 )
 
@@ -254,7 +246,7 @@ def parse_agents_yaml_file_for_flow(path: str) -> Dict[str, Any]:
 
 
 class SimulationCrew:
-    """由 tasks_simulator.yaml 驅動的 Sequential Crew（5 task / 5 agent）。"""
+    """由 tasks_simulator.yaml 驅動的 Sequential Crew（3 task / 3 agent）。"""
 
     agents_config: Any = str(_DEFAULT_AGENTS_PATH.relative_to(_PROJECT_ROOT))
 
@@ -263,7 +255,6 @@ class SimulationCrew:
         pass
 
     def _build_agents(self, agents_cfg: Dict[str, Any]) -> Dict[str, Agent]:
-        search_tool = get_search_internet_tool()
         return {
             "user_analyst": Agent(
                 config=agents_cfg["user_analyst"],
@@ -288,20 +279,6 @@ class SimulationCrew:
                 config=agents_cfg["prediction_modeler"],
                 verbose=False,
             ),
-            "internet_researcher": Agent(
-                config=agents_cfg["internet_researcher"],
-                verbose=False,
-                tools=[search_tool],
-            ),
-            "review_analyst": Agent(
-                config=agents_cfg["review_analyst"],
-                verbose=False,
-                tools=[
-                    lookup_reviews_by_user_and_item,
-                    lookup_reviews_by_item,
-                    lookup_reviews_by_user,
-                ],
-            ),
         }
 
     def crew(self) -> Crew:
@@ -315,8 +292,6 @@ class SimulationCrew:
             by_name["user_analyst"],
             by_name["item_analyst"],
             by_name["prediction_modeler"],
-            by_name["internet_researcher"],
-            by_name["review_analyst"],
         ]
 
         tasks_list: List[Task] = []

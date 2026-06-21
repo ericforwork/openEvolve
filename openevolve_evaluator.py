@@ -25,8 +25,6 @@ _TASK_ROOT_KEYS = frozenset(
         "analyze_user_task",
         "analyze_item_task",
         "simulate_review_task",
-        "internet_research_task",
-        "analyze_reviews_task",
     }
 )
 
