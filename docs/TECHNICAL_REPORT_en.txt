@@ -1,0 +1,306 @@
+Technical Report: Two-Stage OpenEvolve x CrewAI Review Simulation Evolution
+
+Short version ZH: docs/TECHNICAL_REPORT_SHORT.md
+Short version EN: docs/TECHNICAL_REPORT_SHORT_en.md
+Presentation outline: docs/presentation_outline_en.md
+Chinese version: docs/TECHNICAL_REPORT.md
+
+Data sources: config/openevolve_output/final_basicOnly, config/openevolve_output/final_agentTask
+Parsed summary: docs/assets/evolution/evolution_summary.json
+
+
+TABLE OF CONTENTS
+
+1. Abstract
+2. Key Finding
+3. Novel Design
+4. Evolution Analysis
+5. Design and Scoring Alignment
+
+
+1. ABSTRACT
+
+Report Content
+
+This project uses OpenEvolve to perform full-rewrite evolution on a joint agents + tasks YAML for a CrewAI Sequential Crew, with the goal of maximizing the Simulator combined_score (rating prediction + review quality). We adopt a two-stage staged evolution strategy:
+
+Phase 1 (final_basicOnly): 3 agents x 3 tasks, refine base prompts and the JSON output contract.
+Phase 2 (final_agentTask): use Phase 1 Best as Gen-0, extend to 5 agents x 5 tasks, adding historical review matching and internet trend research.
+
+Results:
+  Phase 1  Gen-0 0.9100  Best 0.9412  Gain +0.031
+  Phase 2  Gen-0 0.9579  Best 0.9999  Gain +0.042
+
+Scoring formula:
+
+  combined_score = (preference_estimation + review_generation) / 2
+
+  preference_estimation: star-rating MAE (50%)
+  review_generation: sentiment 25%, emotion 25%, topic 50%
+
+
+Presentation Content (Slides 1-2)
+
+Slide 1 Title
+
+  Title: OpenEvolve x CrewAI Two-Stage Yelp Review Simulation Evolution
+  Subtitle: Basic (3-agent) to Extended (5-agent)
+  Highlight: 0.910 to 0.9999 combined_score
+
+Slide 2 Problem and Goals (Abstract)
+
+  Task: Simulate a user Yelp review of a business (stars + review)
+  Method: OpenEvolve evolves agents/tasks prompts, not Python code
+  Strategy: Two-stage staged evolution, simple first complex later
+  Results table: Gen-0, Best, Gain from table above
+  Scoring formula: one line plus note topic 50% weight
+
+Speaker note: Cover what, how, and results in about 30 seconds.
+
+
+2. KEY FINDING
+
+Report Content
+
+2.1 Strategy-Level Findings (What and How, Creative OpenEvolve Usage)
+
+  1. Human-designed pipeline, machine-optimized prompts
+     Topology (agent count, execution order) is human-designed.
+     OpenEvolve only optimizes role/goal/backstory and description/expected_output.
+
+  2. Two-stage handoff works
+     Phase 2 Gen-0 core agents are text-identical to Phase 1 Best. Handoff verified.
+
+  3. Simple-first avoids search explosion
+     Phase 1 plateaus at 0.94 by iter 15. Proves 3-agent ceiling, Phase 2 extension needed.
+
+  4. Historical review matching is largest marginal gain
+     analyze_reviews_task + lookup_reviews_by_user_and_item drives iter 45 from 0.9666 to 0.9999.
+
+2.2 Evolution-Level Findings (Strategies OpenEvolve Discovered)
+
+  1. Prompt refinement beats tool swapping
+     Phase 1 Best still uses search_*. Gains from prediction_modeler narrative and default strategy.
+
+  2. MAP-Elites tolerates short-term regression
+     Phase 1: gen=2 (0.92) below gen=1 (0.94), but gen=3 breaks through to Best.
+
+  3. Oscillation then integration during exploration
+     Phase 2: gen=1 to 4 oscillates at 0.94 to 0.95. gen=5 integrates mutations to 0.9999.
+
+  4. Zero structural failures
+     292 individuals per run, 0 times combined_score=0. Structure guard stable.
+
+2.3 One-Line Conclusion
+
+  We use two-stage OpenEvolve to push review simulation from 0.91 to 0.9999.
+  Phase 1 learns star heuristics.
+  Phase 2 completes the final leap at iter 45 via historical review direct match.
+
+
+
+3. NOVEL DESIGN
+
+Report Content
+
+3.1 What OpenEvolve Optimizes and How
+
+What: Evolve joint agents + tasks YAML (EVOLVE-BLOCK). Under structure guard, agent/task names and counts are fixed.
+
+How:
+  1. Staged handoff: Phase 1 best to Phase 2 Gen-0 plus manually add 2 agents and 2 tasks
+  2. Joint bundle: agents and tasks mutate together, personas and instructions co-adapt
+  3. Metric-aligned pipeline: early tasks fetch features, mid task matches historical reviews, final task pure reasoning outputs JSON
+
+3.3 Phase 1: 3 Agents x 3 Tasks
+
+  analyze_user_task to analyze_item_task to simulate_review_task
+  user_analyst, item_analyst, prediction_modeler
+
+Agents:
+
+  user_analyst
+    Role: Yelp User Profiler
+    Goal: Analyze user_id
+    Backstory: lookup_user_by_id, default 3.8 stars if missing
+    Tools: search_user_profile_data, search_historical_reviews_data
+
+  item_analyst
+    Role: Yelp Restaurant Analyst
+    Goal: Analyze item_id
+    Backstory: lookup_item_by_id, reconstruct profile if missing
+    Tools: search_restaurant_feature_data, search_historical_reviews_data
+
+  prediction_modeler
+    Role: Rating and Review Predictor
+    Goal: Predict stars and review
+    Backstory: (user_avg+item_stars)/2 plus/minus 0.5 to 1.0, clamp 1 to 5
+    Tools: none
+
+Tasks:
+
+  analyze_user_task / user_analyst
+    ReAct search_*, Action/Action Input
+    Output: Markdown user preferences and rating habits
+
+  analyze_item_task / item_analyst
+    ReAct search_*
+    Output: Markdown business features, pros and cons
+
+  simulate_review_task / prediction_modeler
+    Synthesize prior steps, never claim missing data
+    Output: JSON only {"stars","review"}
+
+3.4 Phase 2: 5 Agents x 5 Tasks (Extension)
+
+  internet_research_task to analyze_user_task to analyze_item_task
+  to analyze_reviews_task to simulate_review_task to JSON
+
+New agents:
+
+  internet_researcher
+    Role: Restaurant Trend Researcher
+    Tool: search_internet
+    Purpose: General rating trends (max 5 bullets, no fabricated user/item data)
+
+  review_analyst
+    Role: Yelp Review Analyst
+    Tool: lookup_reviews_by_user_and_item
+    Purpose: Direct review match
+
+New task highlights:
+
+  internet_research_task: Never pass description key to tool
+  analyze_reviews_task: STEP 1 mandatory lookup, cross-feature fallback
+  simulate_review_task: Reference four prior reports, final JSON
+
+
+Slide 5 Phase 1 Crew Diagram
+
+  Sequential Crew — 3 agents x 3 tasks — final step must output JSON
+
+  +----------------------+     +----------------------+     +----------------------+     +---------+
+  |     user_analyst     | --> |     item_analyst     | --> |  prediction_modeler  | --> |  JSON   |
+  |  analyze_user_task   |     |  analyze_item_task   |     | simulate_review_task |     | stars + |
+  +----------------------+     +----------------------+     +----------------------+     | review  |
+  | search_user_profile  |     | search_restaurant    |     | (no tools)           |     +---------+
+  | search_historical_*  |     | search_historical_*  |     | synthesize 2 reports |
+  +----------------------+     +----------------------+     +----------------------+
+           | Markdown                      | Markdown
+           +-------------------------------+
+                    passed downstream
+
+  Notes: 3 agents, Sequential, final step JSON
+  Tool table (3 rows): see section 3.3
+
+Slide 6 Phase 2 Extension
+
+  Sequential Crew — 5 agents x 5 tasks — extends Phase 1 with 2 new agents
+
+  +---------------------+   +----------------+   +----------------+   +------------------+   +--------------------+   +---------+
+  | internet_researcher |-->|  user_analyst  |-->|  item_analyst  |-->|  review_analyst  |-->| prediction_modeler |-->|  JSON   |
+  | internet_research   |   | analyze_user   |   | analyze_item   |   | analyze_reviews  |   | simulate_review    |   | stars + |
+  +---------------------+   +----------------+   +----------------+   +------------------+   +--------------------+   | review  |
+  | search_internet     |   | search_*       |   | search_*       |   | lookup_reviews   |   | synthesize 4       |   +---------+
+  | trends (max 5 bul.) |   | user profile   |   | item profile   |   | DIRECT MATCH *** |   | prior reports      |
+  +---------------------+   +----------------+   +----------------+   +------------------+   +--------------------+
+
+  Added agents: review_analyst (NEW), internet_researcher (NEW)
+  Key breakthrough task: analyze_reviews_task — lookup_reviews_by_user_and_item (iter 45)
+  Full agent/task details: see section 3.4
+
+
+4. EVOLUTION ANALYSIS
+
+Report Content
+
+4.1 Experimental Setup
+
+  Iterations: 50, checkpoint every 5
+  LLM: gpt-4.1-mini
+  Population / Islands: 50 / 3
+  Mode: full rewrite, seed 42
+  Evaluator: openevolve_evaluator.py to combined_score
+
+4.2 Checkpoint Score Trajectory
+
+Phase 1 final_basicOnly
+
+  checkpoint_5   iter 5   0.9335
+  checkpoint_10  iter 10  0.9355
+  checkpoint_15  iter 15  0.9412
+  checkpoint_20-50 iter 20-50 0.9412 (plateau)
+
+Phase 2 final_agentTask
+
+  checkpoint_5   iter 5   0.9666
+  checkpoint_10-40 iter 10-40 0.9666 (plateau)
+  checkpoint_45  iter 45  0.9999
+  checkpoint_50  iter 50  0.9999
+
+4.3 Ancestry Chain (Evolution Path)
+
+  Phase 1: gen0(0.91) to gen1(0.94) to gen2(0.92) to gen3(0.9412) Best
+  Phase 2: gen0(0.96) to gen1-4(0.94-0.95) to gen5(0.9999) Best
+
+4.4 Strategies OpenEvolve Discovered (Gen-0 vs Best diff)
+
+  P1 Prompt refinement: prediction_modeler to data-scientist narrative, stronger 3.8-star default
+  P1 Tools unchanged: Still search_*, gains from semantics not tool swap
+  P2 Direct match: analyze_reviews_task extracts matched stars and snippet
+  P2 Multi-source synthesis: simulate_review_task references four prior reports
+  P2 Context discipline: internet_research_task capped at 5 bullets max
+
+4.5 Population Statistics
+
+  final_basicOnly: 292 individuals, 0 zero scores, min 0.8694, median 0.9259, max 0.9412
+  final_agentTask: 292 individuals, 0 zero scores, min 0.9237, median 0.9455, max 0.9999
+
+4.6 Visualizer Analysis
+
+  make visualize OUTPUT=config/openevolve_output/final_basicOnly
+  make visualize OUTPUT=config/openevolve_output/final_agentTask
+  Browser: http://127.0.0.1:8080
+
+  Evolution tree: Branch depth, Phase 2 gen=5
+  Performance tab: Phase 1 early plateau, Phase 2 jump at iter 45
+  Code diff viewer: Gen-0 vs Best prompt mutations
+  MAP-Elites grid: complexity and diversity distribution
+
+Gen-0 vs Best files:
+
+  Phase 1 Gen-0: docs/assets/evolution/final_basicOnly_gen0.yaml
+  Phase 1 Best: config/openevolve_output/final_basicOnly/best/best_program.yaml
+  Phase 2 Gen-0: docs/assets/evolution/final_agentTask_gen0.yaml
+  Phase 2 Best: config/openevolve_output/final_agentTask/best/best_program.yaml
+
+
+Presentation Content (Slides 8-10)
+
+Slide 8 Evolution Score Trajectory
+
+  Phase 1 start 0.910, plateau iter 15 to 0.941, no breakthrough
+  Phase 2 start 0.958, plateau iter 5-40 to 0.967, breakthrough iter 45 to 0.9999
+
+  Include compact checkpoint table 3-4 rows each
+
+Slide 9 Evolution Path (ancestry and Visualizer)
+
+  P1: gen0 to gen1 to gen2 down to gen3 Best
+  P2: gen0 to gen1-4 oscillation to gen5 Best
+
+  Screenshot placeholder: Evolution tree Phase 2
+  Screenshot placeholder: Performance curve iter 45 jump
+  Talking point: MAP-Elites allows short regression, gen=5 integrates prior mutations
+
+Slide 10 Gen-0 vs Best 3 Strategies OpenEvolve Discovered
+
+  1. Direct review shortcut: analyze_reviews_task strengthens matched stars
+  2. Multi-source synthesis: simulate_review_task consumes four reports
+  3. Context discipline: internet research limited to 5 bullets
+
+  Screenshot placeholder: Visualizer diff viewer Phase 2 Best vs Gen-0
+  Optional: structure guard, 292 individuals, 0 failures
+
+Speaker note: These three slides are core for depth of evolution analysis scoring. Include visualizer screenshots.
+

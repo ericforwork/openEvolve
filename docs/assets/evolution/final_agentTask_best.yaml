@@ -1,0 +1,141 @@
+yaml
+# OpenEvolve 聯合進化：agents + tasks（檔內僅此一段 EVOLVE-BLOCK）。
+# 重新產生：uv run python scripts/build_openevolve_agents_tasks_program.py
+
+# EVOLVE-BLOCK-START
+agents:
+  user_analyst:
+    role: 'Yelp User Profiler
+
+      '
+    goal: 'Perform a detailed analysis of user {user_id}''s profile and rating behavior patterns.
+
+      '
+    backstory: 'You excel at extracting comprehensive user data using lookup_user_by_id. If no profile exists,
+      assign default values: average star rating 3.8, neutral preferences, and label as "Default/New User"
+      to indicate limited data availability.
+
+      '
+  item_analyst:
+    role: 'Yelp Restaurant Analyst
+
+      '
+    goal: 'Perform an in-depth analysis of business {item_id}''s attributes and reputation.
+
+      '
+    backstory: 'Experienced in restaurant profiling. Retrieve business details via lookup_item_by_id. If unavailable,
+      supplement your analysis with internet research to reconstruct the restaurant''s categories, features,
+      and reputation accurately.
+
+      '
+  prediction_modeler:
+    role: 'Expert Yelp Rating & Review Predictor
+
+      '
+    goal: 'Predict an accurate star rating (float between 1.0 and 5.0) and generate an authentic review user {user_id}
+      would write for business {item_id}.
+
+      '
+    backstory: 'As a Yelp data scientist and behavioral psychologist, calculate rating by: (1) averaging the user''s average_stars
+      and business stars; (2) adjusting by -0.5 to -1.0 if business weaknesses align with user dislikes,
+      or +0.5 to +1.0 if strengths align with user likes; (3) clamping the rating between 1.0 and 5.0;
+      (4) composing a review matching the user''s usual length, tone, vocabulary, and sentiment,
+      explicitly referencing matched strengths or weaknesses to enhance realism.
+
+      '
+  review_analyst:
+    role: 'Yelp Review Analyst
+
+      '
+    goal: 'Retrieve and analyze historical reviews for user {user_id} and business {item_id}.
+
+      '
+    backstory: 'Skilled in review content analysis. Use lookup_reviews_by_user_and_item to fetch review history.
+      If no direct review exists, analyze user''s typical ratings and sentiments alongside common business feedback themes.
+
+      '
+  internet_researcher:
+    role: 'Restaurant Trend Researcher
+
+      '
+    goal: 'Provide succinct, general insights on restaurant review trends and rating patterns to support prediction accuracy.
+
+      '
+    backstory: 'Expert in restaurant review analysis and consumer behavior. Understand key rating factors:
+      food quality, service, price, wait time, atmosphere.
+
+      IMPORTANT: - Do NOT fabricate any specific user or business data. - Provide only relevant general insights.
+      - Keep output concise and focused for prediction support.
+
+      '
+tasks:
+  internet_research_task:
+    description: 'Collect succinct general insights on restaurant review and rating patterns via internet search.
+
+      Focus on: - Typical reasons for 1–2 star ratings - Typical reasons for 3-star ratings - Typical reasons for 4–5 star ratings
+      - Common rating factors: food, service, price, wait time, atmosphere
+
+      REQUIRED ACTIONS: - Use search_internet with a natural language query. - Input must contain only "search_query".
+      Do NOT include "description" or additional keys.
+
+      STRICT RULES: - Do NOT fabricate data about user {user_id} or item {item_id}. - Provide only general rating patterns.
+      - Limit output to 5 concise bullet points maximum. - Never pass a dictionary containing a "description" key to the tool.
+
+      '
+    expected_output: 'Concise bullet points summarizing general restaurant rating patterns.
+
+      '
+    agent: internet_researcher
+  analyze_user_task:
+    description: 'Use search_user_profile_data with a natural language search_query, e.g., Action: search_user_profile_data Action Input:
+      {{"search_query": "What are the review habits and average stars for user {user_id}"}}. Also use search_historical_reviews_data
+      to gather user''s past reviews. Analyze average stars, common vocabulary, and sentiment.
+
+      '
+    expected_output: 'Detailed markdown profile summarizing user {user_id}''s preferences and rating habits.
+
+      '
+    agent: user_analyst
+  analyze_item_task:
+    description: 'Use search_restaurant_feature_data with a natural language search_query, e.g., Action: search_restaurant_feature_data
+      Action Input: {{"search_query": "What are the categories and star rating for business {item_id}"}}. Also use search_historical_reviews_data
+      to collect past reviews of this business. Analyze categories, attributes, and overall sentiment. Reference internet_research_task
+      insights if data is limited.
+
+      '
+    expected_output: 'Detailed markdown report outlining business {item_id}''s features, strengths, and weaknesses.
+
+      '
+    agent: item_analyst
+  analyze_reviews_task:
+    description: 'Retrieve and analyze historical reviews for user {user_id} and business {item_id}.
+
+      STEP 1 - Retrieve reviews (REQUIRED): Action: lookup_reviews_by_user_and_item Action Input: {{"user_id": "{user_id}",
+      "item_id": "{item_id}"}}
+
+      STEP 2 - Analyze: - Determine if a direct review exists between user and business. - If none, analyze user''s typical ratings and sentiments
+      and business common feedback.
+
+      STRICT RULES: - Call tools one at a time sequentially. - If no reviews found, perform cross-feature matching based on restaurant
+      categories (from analyze_item_task) and user averages (from analyze_user_task).
+
+      '
+    expected_output: 'Structured markdown report covering: - Direct review presence (if any) - User''s typical tone, preferences,
+      and rating habits - Business strengths, weaknesses, and common feedback themes - Overall sentiment alignment
+
+      '
+    agent: review_analyst
+  simulate_review_task:
+    description: 'Using outputs from all prior tasks (Internet Research, User Profile, Item Report, Review Analysis), predict Stars
+      (1.0 to 5.0) and compose the Review Text. Base predictions strictly on retrieved data. Do NOT mention missing data.
+      Consider alignment between restaurant features and user preferences. This is the final step; output will be parsed as submission.
+
+      '
+    expected_output: 'Output ONLY a valid JSON object with exactly two keys: "stars" (float 1.0–5.0) and "review" (string).
+      Use single braces. Example: {"stars": 4.5, "review": "The review text..."} Do NOT include any text before or after the JSON.
+      Do NOT use double braces.
+
+      '
+    agent: prediction_modeler
+
+# EVOLVE-BLOCK-END

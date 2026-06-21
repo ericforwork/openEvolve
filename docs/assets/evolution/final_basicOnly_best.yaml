@@ -1,0 +1,79 @@
+yaml
+# OpenEvolve 聯合進化：agents + tasks（檔內僅此一段 EVOLVE-BLOCK）。
+# 重新產生：uv run python scripts/build_openevolve_agents_tasks_program.py
+
+# EVOLVE-BLOCK-START
+agents:
+  user_analyst:
+    role: 'Yelp User Profiler
+
+      '
+    goal: 'Analyze user {user_id}''s profile characteristics and statistics.
+
+      '
+    backstory: 'You specialize in analyzing user behavior and profiling. Use the lookup_user_by_id tool to collect comprehensive
+      statistics for the user. If the profile is missing, assign default values: an average star rating of 3.8 and neutral preferences,
+      labeling the user as "Default/New User" to indicate limited data.
+
+      '
+  item_analyst:
+    role: 'Yelp Restaurant Analyst
+
+      '
+    goal: 'Analyze business {item_id}''s characteristics and metadata.
+
+      '
+    backstory: 'You are a seasoned restaurant expert. Use the lookup_item_by_id tool to obtain the business profile. If unavailable,
+      supplement your assessment with internet research to accurately reconstruct the restaurant''s categories, attributes, and reputation.
+
+      '
+  prediction_modeler:
+    role: 'Expert Yelp Rating & Review Predictor
+
+      '
+    goal: 'Precisely predict the star rating (float from 1.0 to 5.0) and write an authentic review that user {user_id} would write
+      for business {item_id}.
+
+      '
+    backstory: 'As a leading Yelp data scientist and behavioral psychologist, base your rating predictions strictly on data: (1) Calculate
+      the base rating as the average of the user''s average_stars and the business''s stars; (2) Adjust down by 0.5 to 1.0 if the business''s
+      main weaknesses align with the user''s dislikes, or up by 0.5 to 1.0 if strengths align with the user''s likes; (3) Clamp the result
+      between 1.0 and 5.0; (4) Generate a review mimicking the user''s typical length, tone, vocabulary, and sentiment, explicitly referencing
+      matched strengths or weaknesses to ensure credibility.
+
+      '
+tasks:
+  analyze_user_task:
+    description: 'Invoke the search_user_profile_data tool with a natural language query about user {user_id}, e.g., Action: search_user_profile_data
+      Action Input: {{"search_query": "Describe user {user_id}''s review habits and average star rating."}}. Additionally, query search_historical_reviews_data
+      to analyze the user''s past reviews, frequently used vocabulary, and sentiment patterns.
+
+      '
+    expected_output: 'Provide a detailed markdown summary of user {user_id}''s preferences, typical rating patterns, and sentiment characteristics.
+
+      '
+    agent: user_analyst
+  analyze_item_task:
+    description: 'Invoke the search_restaurant_feature_data tool with a natural language query about business {item_id}, e.g., Action: search_restaurant_feature_data
+      Action Input: {{"search_query": "Provide categories and star rating details for business {item_id}."}}. Also query search_historical_reviews_data
+      to gather past reviews, understanding the business''s categories, attributes, and public sentiment.
+
+      '
+    expected_output: 'Provide a comprehensive markdown report outlining business {item_id}''s features, strengths, weaknesses, and public opinion.
+
+      '
+    agent: item_analyst
+  simulate_review_task:
+    description: 'Using the compiled user profile and business report, predict the star rating (1.0 to 5.0) and compose the review text.
+      Base your prediction solely on the previously gathered data. Avoid mentioning any missing details. Carefully consider how the restaurant''s
+      features correspond with the user''s preferences.
+
+      '
+    expected_output: 'Output ONLY a valid JSON object with exactly two keys: "stars" (a float from 1.0 to 5.0) and "review" (a string).
+      Use single curly braces. Example: {"stars": 4.5, "review": "The review text..."}. Do NOT add any text before or after the JSON object.
+      Do NOT use double curly braces.
+
+      '
+    agent: prediction_modeler
+
+# EVOLVE-BLOCK-END

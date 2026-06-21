@@ -1,0 +1,250 @@
+{
+  "final_basicOnly": {
+    "gen0_score": 0.9100407443619566,
+    "best": {
+      "id": "adf153e7-c161-4eb3-ba95-4485da4e8e27",
+      "generation": 3,
+      "iteration": 13,
+      "timestamp": 1781861543.663121,
+      "parent_id": "b4ea96b4-8630-4b90-be2c-700ff94ee9e1",
+      "metrics": {
+        "combined_score": 0.9411638197821798
+      },
+      "language": "text",
+      "saved_at": 1781863328.6494277
+    },
+    "checkpoint_trajectory": [
+      {
+        "checkpoint": "checkpoint_5",
+        "iteration": 5,
+        "best_id": "342347cb-73dd-4ecb-94dd-7a308351c6e3",
+        "generation": 1,
+        "combined_score": 0.9334621753810672
+      },
+      {
+        "checkpoint": "checkpoint_10",
+        "iteration": 10,
+        "best_id": "c30597c1-7834-4f6d-829b-3e35fb353ee9",
+        "generation": 1,
+        "combined_score": 0.9355068168579368
+      },
+      {
+        "checkpoint": "checkpoint_15",
+        "iteration": 15,
+        "best_id": "adf153e7-c161-4eb3-ba95-4485da4e8e27",
+        "generation": 3,
+        "combined_score": 0.9411638197821798
+      },
+      {
+        "checkpoint": "checkpoint_20",
+        "iteration": 20,
+        "best_id": "adf153e7-c161-4eb3-ba95-4485da4e8e27",
+        "generation": 3,
+        "combined_score": 0.9411638197821798
+      },
+      {
+        "checkpoint": "checkpoint_25",
+        "iteration": 25,
+        "best_id": "adf153e7-c161-4eb3-ba95-4485da4e8e27",
+        "generation": 3,
+        "combined_score": 0.9411638197821798
+      },
+      {
+        "checkpoint": "checkpoint_30",
+        "iteration": 30,
+        "best_id": "adf153e7-c161-4eb3-ba95-4485da4e8e27",
+        "generation": 3,
+        "combined_score": 0.9411638197821798
+      },
+      {
+        "checkpoint": "checkpoint_35",
+        "iteration": 35,
+        "best_id": "adf153e7-c161-4eb3-ba95-4485da4e8e27",
+        "generation": 3,
+        "combined_score": 0.9411638197821798
+      },
+      {
+        "checkpoint": "checkpoint_40",
+        "iteration": 40,
+        "best_id": "adf153e7-c161-4eb3-ba95-4485da4e8e27",
+        "generation": 3,
+        "combined_score": 0.9411638197821798
+      },
+      {
+        "checkpoint": "checkpoint_45",
+        "iteration": 45,
+        "best_id": "adf153e7-c161-4eb3-ba95-4485da4e8e27",
+        "generation": 3,
+        "combined_score": 0.9411638197821798
+      },
+      {
+        "checkpoint": "checkpoint_50",
+        "iteration": 50,
+        "best_id": "adf153e7-c161-4eb3-ba95-4485da4e8e27",
+        "generation": 3,
+        "combined_score": 0.9411638197821798
+      }
+    ],
+    "ancestry": [
+      {
+        "generation": 3,
+        "iteration": null,
+        "combined_score": 0.9411638197821798,
+        "parent_id": "b4ea96b4-8630-4b90-be2c-700ff94ee9e1",
+        "id_short": "adf153e7"
+      },
+      {
+        "generation": 2,
+        "iteration": null,
+        "combined_score": 0.9214468381605344,
+        "parent_id": "c30597c1-7834-4f6d-829b-3e35fb353ee9",
+        "id_short": "b4ea96b4"
+      },
+      {
+        "generation": 1,
+        "iteration": null,
+        "combined_score": 0.9355068168579368,
+        "parent_id": "e64d28f6-9f3d-416e-a987-b3a4c166896a",
+        "id_short": "c30597c1"
+      },
+      {
+        "generation": 0,
+        "iteration": null,
+        "combined_score": 0.9100407443619566,
+        "parent_id": null,
+        "id_short": "e64d28f6"
+      }
+    ]
+  },
+  "final_agentTask": {
+    "gen0_score": 0.9578862335671439,
+    "best": {
+      "id": "fc2b8f5e-8a90-41c4-8e94-65215a669a33",
+      "generation": 5,
+      "iteration": 44,
+      "timestamp": 1781898816.9058619,
+      "parent_id": "4899215f-7c1c-41b3-807b-b817ad8f7d8a",
+      "metrics": {
+        "combined_score": 0.9999259791948134
+      },
+      "language": "text",
+      "saved_at": 1781899371.4713519
+    },
+    "checkpoint_trajectory": [
+      {
+        "checkpoint": "checkpoint_5",
+        "iteration": 5,
+        "best_id": "e6a602d5-7173-4b5b-95f9-188104ee1a5c",
+        "generation": 2,
+        "combined_score": 0.9666464859126369
+      },
+      {
+        "checkpoint": "checkpoint_10",
+        "iteration": 10,
+        "best_id": "e6a602d5-7173-4b5b-95f9-188104ee1a5c",
+        "generation": 2,
+        "combined_score": 0.9666464859126369
+      },
+      {
+        "checkpoint": "checkpoint_15",
+        "iteration": 15,
+        "best_id": "e6a602d5-7173-4b5b-95f9-188104ee1a5c",
+        "generation": 2,
+        "combined_score": 0.9666464859126369
+      },
+      {
+        "checkpoint": "checkpoint_20",
+        "iteration": 20,
+        "best_id": "e6a602d5-7173-4b5b-95f9-188104ee1a5c",
+        "generation": 2,
+        "combined_score": 0.9666464859126369
+      },
+      {
+        "checkpoint": "checkpoint_25",
+        "iteration": 25,
+        "best_id": "e6a602d5-7173-4b5b-95f9-188104ee1a5c",
+        "generation": 2,
+        "combined_score": 0.9666464859126369
+      },
+      {
+        "checkpoint": "checkpoint_30",
+        "iteration": 30,
+        "best_id": "e6a602d5-7173-4b5b-95f9-188104ee1a5c",
+        "generation": 2,
+        "combined_score": 0.9666464859126369
+      },
+      {
+        "checkpoint": "checkpoint_35",
+        "iteration": 35,
+        "best_id": "e6a602d5-7173-4b5b-95f9-188104ee1a5c",
+        "generation": 2,
+        "combined_score": 0.9666464859126369
+      },
+      {
+        "checkpoint": "checkpoint_40",
+        "iteration": 40,
+        "best_id": "e6a602d5-7173-4b5b-95f9-188104ee1a5c",
+        "generation": 2,
+        "combined_score": 0.9666464859126369
+      },
+      {
+        "checkpoint": "checkpoint_45",
+        "iteration": 45,
+        "best_id": "fc2b8f5e-8a90-41c4-8e94-65215a669a33",
+        "generation": 5,
+        "combined_score": 0.9999259791948134
+      },
+      {
+        "checkpoint": "checkpoint_50",
+        "iteration": 50,
+        "best_id": "fc2b8f5e-8a90-41c4-8e94-65215a669a33",
+        "generation": 5,
+        "combined_score": 0.9999259791948134
+      }
+    ],
+    "ancestry": [
+      {
+        "generation": 5,
+        "iteration": null,
+        "combined_score": 0.9999259791948134,
+        "parent_id": "4899215f-7c1c-41b3-807b-b817ad8f7d8a",
+        "id_short": "fc2b8f5e"
+      },
+      {
+        "generation": 4,
+        "iteration": null,
+        "combined_score": 0.9481920481269481,
+        "parent_id": "24c715a8-dadf-4fbe-a13b-1a0733339b5e",
+        "id_short": "4899215f"
+      },
+      {
+        "generation": 3,
+        "iteration": null,
+        "combined_score": 0.9455110003974987,
+        "parent_id": "5a04bf3a-d14d-49f2-869a-1cfffbd53fac",
+        "id_short": "24c715a8"
+      },
+      {
+        "generation": 2,
+        "iteration": null,
+        "combined_score": 0.9494953409106937,
+        "parent_id": "36e0ff42-cdbc-4c21-9611-daaa54d58288",
+        "id_short": "5a04bf3a"
+      },
+      {
+        "generation": 1,
+        "iteration": null,
+        "combined_score": 0.9534862074308796,
+        "parent_id": "19243379-f574-45eb-8a37-1ca62c97aa92",
+        "id_short": "36e0ff42"
+      },
+      {
+        "generation": 0,
+        "iteration": null,
+        "combined_score": 0.9578862335671439,
+        "parent_id": null,
+        "id_short": "19243379"
+      }
+    ]
+  }
+}
