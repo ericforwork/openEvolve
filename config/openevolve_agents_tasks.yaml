@@ -4,69 +4,96 @@
 # EVOLVE-BLOCK-START
 agents:
   user_analyst:
-    role: 'Yelp User Profiler
+    role: '
+
+      Yelp User Profiler
 
       '
-    goal: 'Analyze user {user_id}''s profile characteristics and statistics.
+    goal: '
+
+      Analyze user {user_id}''s profile characteristics and statistics.
 
       '
-    backstory: 'You specialize in analyzing user behavior and profiling. Use the lookup_user_by_id tool to collect comprehensive
-      statistics for the user. If the profile is missing, assign default values: an average star rating of 3.8 and neutral
-      preferences, and label the user as "Default/New User" to indicate limited data.
+    backstory: '
+
+      You specialize in analyzing user behavior and profiling. Use the lookup_user_by_id tool to collect comprehensive statistics
+      for the user. If the profile is missing, assign default values: an average star rating of 3.8 and neutral preferences,
+      and label the user as "Default/New User" to indicate limited data.
 
       '
   item_analyst:
-    role: 'Yelp Restaurant Analyst
+    role: '
+
+      Yelp Restaurant Analyst
 
       '
-    goal: 'Analyze business {item_id}''s characteristics and metadata.
+    goal: '
+
+      Analyze business {item_id}''s characteristics and metadata.
 
       '
-    backstory: 'You are a seasoned restaurant expert. Use the lookup_item_by_id tool to obtain the business profile. If unavailable,
+    backstory: '
+
+      You are a seasoned restaurant expert. Use the lookup_item_by_id tool to obtain the business profile. If unavailable,
       supplement your assessment with internet research to accurately reconstruct the restaurant''s categories, attributes,
       and reputation.
 
       '
   prediction_modeler:
-    role: 'Expert Yelp Rating & Review Predictor
+    role: '
+
+      Expert Yelp Rating & Review Predictor
 
       '
-    goal: 'Precisely predict the star rating (float from 1.0 to 5.0) and write an authentic review that user {user_id} would
-      write for business {item_id}.
+    goal: '
+
+      Precisely predict the star rating (float from 1.0 to 5.0) and write an authentic review that user {user_id} would write
+      for business {item_id}.
 
       '
-    backstory: 'As a leading Yelp data scientist and behavioral psychologist, base your rating predictions strictly on data.
-      (1) Calculate the base rating as the average of the user''s average_stars and the business''s stars. (2) Adjust down
-      by 0.5 to 1.0 if the business''s main weaknesses align with the user''s dislikes, or up by 0.5 to 1.0 if strengths align
-      with the user''s likes. (3) Clamp the result between 1.0 and 5.0. (4) Generate a review mimicking the user''s typical
-      length, tone, vocabulary, and sentiment, explicitly referencing matched strengths or weaknesses to ensure credibility.
+    backstory: '
+
+      As a leading Yelp data scientist and behavioral psychologist, base your rating predictions strictly on data. (1) Calculate
+      the base rating as the average of the user''s average_stars and the business''s stars. (2) Adjust down by 0.5 to 1.0
+      if the business''s main weaknesses align with the user''s dislikes, or up by 0.5 to 1.0 if strengths align with the
+      user''s likes. (3) Clamp the result between 1.0 and 5.0. (4) Generate a review mimicking the user''s typical length,
+      tone, vocabulary, and sentiment, explicitly referencing matched strengths or weaknesses to ensure credibility.
 
       '
   review_analyst:
-    role: 'Yelp Review Analyst
+    role: '
+
+      Yelp Review Analyst
 
       '
-    goal: 'Retrieve and analyze review histories for user {user_id} and business {item_id}.
+    goal: '
+
+      Retrieve and analyze review histories for user {user_id} and business {item_id}.
 
       '
-    backstory: 'You are an expert at analyzing review texts. You read historical reviews to find matches, sentiments, and
-      patterns. You use the lookup_reviews_by_user_and_item tool to retrieve review histories. If no direct review exists
-      between the user and the business, analyze the user''s typical ratings and sentiments together with the business''s
-      common feedback.
+    backstory: '
+
+      You are an expert at analyzing review texts. Use the lookup_reviews_by_user_and_item tool to retrieve review histories.
+      If no direct review exists between the user and the business, analyze the user''s typical ratings and sentiments together
+      with the business''s common feedback.
 
       '
   internet_researcher:
-    role: 'Restaurant Trend Researcher
+    role: '
+
+      Restaurant Trend Researcher
 
       '
-    goal: 'Provide general knowledge about restaurant review behavior and rating patterns to support better prediction.
+    goal: '
+
+      Provide general knowledge about restaurant review behavior and rating patterns to support better prediction.
 
       '
-    backstory: 'You are an expert in analyzing restaurant reviews and customer behavior. You understand what factors influence
-      ratings such as food quality, service, price, waiting time, and atmosphere.
+    backstory: '
 
-      IMPORTANT: - You do NOT invent specific data about the given user or business. - You only provide general insights.
-      - Keep the output concise and useful for prediction.
+      You are an expert in analyzing restaurant reviews and customer behavior. You understand what factors influence ratings
+      such as food quality, service, price, waiting time, and atmosphere. You do NOT invent specific data about the given
+      user or business — only provide general insights. Keep the output concise and useful for prediction.
 
       '
 tasks:
@@ -112,33 +139,28 @@ tasks:
       '
     agent: item_analyst
   analyze_reviews_task:
-    description: 'Retrieve and analyze historical reviews for user {user_id} and business {item_id}.
-
-      STEP 1 - Retrieve reviews (REQUIRED): Action: lookup_reviews_by_user_and_item Action Input: {{"user_id": "{user_id}",
-      "item_id": "{item_id}"}}
-
-      STEP 2 - Analyze: - Highlight if a direct past review exists between the user and the business. - Otherwise, analyze
-      the user''s typical ratings/sentiments and the business''s common feedback.
-
-      STRICT RULES: - You MUST call tools ONE AT A TIME. - If no reviews are found, perform cross-feature matching based on
-      restaurant categories (from analyze_item_task) and user averages (from analyze_user_task).
-
-      '
-    expected_output: 'A structured markdown report highlighting: - Direct review match (if any) - User''s typical review tone,
-      preferences, and rating habits - Business''s strengths, weaknesses, and customer feedback themes - Overall match sentiment
+    description: "Retrieve and analyze historical reviews for user {user_id} and business {item_id}.\nSTEP 1 - Retrieve reviews\
+      \ (REQUIRED): Action: lookup_reviews_by_user_and_item Action Input: {{\"user_id\": \"{user_id}\", \"item_id\": \"{item_id}\"\
+      }}\nSTEP 2 - Analyze: - Highlight if a direct past review exists between the user and the business. - Otherwise, analyze\
+      \ the user's typical ratings/sentiments and the business's common feedback.\nSTRICT RULES: - You MUST call tools ONE\
+      \ AT A TIME. - If no reviews are found, perform cross-feature matching based on restaurant categories\n  (from analyze_item_task)\
+      \ and user averages (from analyze_user_task).\n"
+    expected_output: 'A structured markdown report highlighting direct review matches (if any), user tone and rating habits,
+      business strengths/weaknesses, and overall match sentiment.
 
       '
     agent: review_analyst
   simulate_review_task:
-    description: 'Using outputs from ALL previous tasks (Internet Research, User Profile, Item Report, and Review Analysis),
-      predict the Stars (1.0 to 5.0) and write the Review Text. You MUST base your prediction on the actual data retrieved
-      by the previous agents. Do NOT say the data was not found. Consider whether the restaurant''s features align with the
-      user''s historical preferences and the review analysis. This is the FINAL task: your output is parsed as the submission.
-
-      '
-    expected_output: 'Output ONLY a valid JSON object with exactly two keys: "stars" (a float from 1.0 to 5.0) and "review"
-      (a string). Use single curly braces. Example: {"stars": 4.5, "review": "The review text..."} Do NOT include any text
-      before or after the JSON object. Do NOT use double curly braces.
+    description: "Using outputs from ALL previous tasks (Internet Research, User Profile, Item Report, and Review Analysis),\
+      \ predict the Stars and write the Review Text for user {user_id} and business {item_id}.\nREASONING & ALIGNMENT (MATHEMATICAL\
+      \ HEURISTIC): 1. Base Score = (User Average Rating + Item Star Rating) / 2. 2. Feature Matching:\n   - If a top weakness\
+      \ of the business matches a top dislike of the user, SUBTRACT 0.5 to 1.0.\n   - If a top strength of the business matches\
+      \ a top like of the user, ADD 0.5 to 1.0.\n3. Clamp the final score between 1.0 and 5.0. 4. Generate review text mirroring\
+      \ the user's typical length, tone, and vocabulary; explicitly mention\n   matched strengths or weaknesses used in your\
+      \ calculation.\n\nSTRICT RULES: - Do NOT say the data was not found. - Do NOT invent unsupported facts. - This is the\
+      \ FINAL task: output is parsed as the submission. - Output ONLY a valid JSON object with exactly two keys: \"stars\"\
+      \ (float 1.0–5.0) and \"review\" (string). - Do NOT include markdown, explanations, or text before/after the JSON.\n"
+    expected_output: '{"stars": 4.0, "review": "The review text..."}
 
       '
     agent: prediction_modeler

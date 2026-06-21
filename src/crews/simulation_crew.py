@@ -17,9 +17,11 @@ from crewai import Agent, Crew, Process, Task
 from src.utils.yaml_sanitize import sanitize_agents_yaml_text
 from src.tools.simulator_bound_tools import (
     get_search_internet_tool,
+    lookup_item_by_id,
     lookup_reviews_by_item,
     lookup_reviews_by_user,
     lookup_reviews_by_user_and_item,
+    lookup_user_by_id,
     search_historical_reviews_data,
     search_restaurant_feature_data,
     search_user_profile_data,
@@ -266,12 +268,20 @@ class SimulationCrew:
             "user_analyst": Agent(
                 config=agents_cfg["user_analyst"],
                 verbose=False,
-                tools=[search_user_profile_data, search_historical_reviews_data],
+                tools=[
+                    lookup_user_by_id,
+                    search_user_profile_data,
+                    search_historical_reviews_data,
+                ],
             ),
             "item_analyst": Agent(
                 config=agents_cfg["item_analyst"],
                 verbose=False,
-                tools=[search_restaurant_feature_data, search_historical_reviews_data],
+                tools=[
+                    lookup_item_by_id,
+                    search_restaurant_feature_data,
+                    search_historical_reviews_data,
+                ],
                 max_rpm=10,
             ),
             "prediction_modeler": Agent(

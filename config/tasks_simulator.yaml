@@ -67,28 +67,39 @@ analyze_reviews_task:
 
     STRICT RULES:
     - You MUST call tools ONE AT A TIME.
-    - If no reviews are found, perform cross-feature matching based on restaurant categories (from analyze_item_task) and user averages (from analyze_user_task).
+    - If no reviews are found, perform cross-feature matching based on restaurant categories
+      (from analyze_item_task) and user averages (from analyze_user_task).
 
   expected_output: >
-    A structured markdown report highlighting:
-    - Direct review match (if any)
-    - User's typical review tone, preferences, and rating habits
-    - Business's strengths, weaknesses, and customer feedback themes
-    - Overall match sentiment
+    A structured markdown report highlighting direct review matches (if any), user tone and rating habits,
+    business strengths/weaknesses, and overall match sentiment.
 
   agent: review_analyst
 
 simulate_review_task:
   description: >
     Using outputs from ALL previous tasks (Internet Research, User Profile, Item Report, and Review Analysis),
-    predict the Stars (1.0 to 5.0) and write the Review Text.
-    You MUST base your prediction on the actual data retrieved by the previous agents. Do NOT say the data was not found.
-    Consider whether the restaurant's features align with the user's historical preferences and the review analysis.
-    This is the FINAL task: your output is parsed as the submission.
+    predict the Stars and write the Review Text for user {user_id} and business {item_id}.
+
+    REASONING & ALIGNMENT (MATHEMATICAL HEURISTIC):
+    1. Base Score = (User Average Rating + Item Star Rating) / 2.
+    2. Feature Matching:
+       - If a top weakness of the business matches a top dislike of the user, SUBTRACT 0.5 to 1.0.
+       - If a top strength of the business matches a top like of the user, ADD 0.5 to 1.0.
+    3. Clamp the final score between 1.0 and 5.0.
+    4. Generate review text mirroring the user's typical length, tone, and vocabulary; explicitly mention
+       matched strengths or weaknesses used in your calculation.
+
+    STRICT RULES:
+    - Do NOT say the data was not found.
+    - Do NOT invent unsupported facts.
+    - This is the FINAL task: output is parsed as the submission.
+    - Output ONLY a valid JSON object with exactly two keys: "stars" (float 1.0–5.0) and "review" (string).
+    - Do NOT include markdown, explanations, or text before/after the JSON.
+
   expected_output: >
-    Output ONLY a valid JSON object with exactly two keys: "stars" (a float from 1.0 to 5.0) and "review" (a string).
-    Use single curly braces. Example: {"stars": 4.5, "review": "The review text..."}
-    Do NOT include any text before or after the JSON object. Do NOT use double curly braces.
+    {"stars": 4.0, "review": "The review text..."}
+
   agent: prediction_modeler
 
 # EVOLVE-BLOCK-END
